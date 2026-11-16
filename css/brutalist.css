@@ -1,0 +1,83 @@
+/* Minimalist brutalist theme: plain flat colors, zero shadows, zero border-radius, zero blur */
+:root[data-style="brutal"] {
+  --bg: #ffffff;
+  --card: #ffffff;
+  --ink: #000000;
+  --mut: #525252;
+  --line: #000000;
+  --soft: transparent;
+  --r: 0px;
+}
+
+:root[data-style="brutal"][data-t="dark"] {
+  --bg: #000000;
+  --card: #000000;
+  --ink: #ffffff;
+  --mut: #a3a3a3;
+  --line: #ffffff;
+  --soft: transparent;
+}
+
+:root[data-style="brutal"] *,
+:root[data-style="brutal"] *::before,
+:root[data-style="brutal"] *::after {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  transition: none !important;
+}
+
+:root[data-style="brutal"] body {
+  background: var(--bg);
+}
+
+:root[data-style="brutal"] .ring circle {
+  stroke-linecap: butt !important;
+}
+
+:root[data-style="brutal"] .chip.on {
+  background: var(--acc);
+  color: #ffffff;
+  border-color: var(--acc);
+}
+
+:root[data-style="brutal"] .chip.on b {
+  background: #ffffff !important;
+}
+
+:root[data-style="brutal"] .seg button.on {
+  background: var(--ink);
+  color: var(--bg);
+}
+
+:root[data-style="brutal"] .bar {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  height: 9px;
+}
+
+:root[data-style="brutal"] .bb {
+  border: 1px solid var(--line);
+}
+
+:root[data-style="brutal"] .mine .bb {
+  border-color: var(--acc);
+}
+
+:root[data-style="brutal"] .cols button.on {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+  border-color: var(--bg);
+}
+
+:root[data-style="brutal"] dialog {
+  border: 2px solid var(--line);
+}
+
+:root[data-style="brutal"] dialog::backdrop {
+  background: rgba(0, 0, 0, .7);
+  backdrop-filter: none;
+}
+
+:root[data-style="brutal"] #toast {
+  border: 1px solid var(--bg);
+}
