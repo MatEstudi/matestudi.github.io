@@ -1,0 +1,23 @@
+/* Reset and element defaults. */
+* { box-sizing: border-box; margin: 0; }
+
+html { background: var(--bg); }
+
+body {
+  font: 15px/1.5 var(--f2);
+  color: var(--ink);
+  background: radial-gradient(900px 420px at 50% -120px, var(--soft), transparent), var(--bg);
+  min-height: 100vh;
+  padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+  transition: background .4s;
+}
+
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; border: 0; background: none; }
+:focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; }
+
+h2 { font: 700 18px var(--f1); margin: 26px 0 12px; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+}

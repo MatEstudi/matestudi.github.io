@@ -1,0 +1,28 @@
+/* Design tokens. The palette follows the system colour scheme automatically. */
+:root {
+  color-scheme: light dark;
+
+  --bg: #f5f6fa;
+  --card: #fff;
+  --ink: #161a2e;
+  --mut: #6b7190;
+  --line: #e6e8f0;
+  --acc: #6366f1; /* overridden at runtime with the colour of the selected subject */
+  --soft: color-mix(in srgb, var(--acc) 11%, transparent);
+  --live: #16a34a;
+  --online: #22c55e;
+  --r: 22px;
+
+  --f1: 'Bricolage Grotesque', 'Trebuchet MS', system-ui, sans-serif;
+  --f2: 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d1020;
+    --card: #161a2e;
+    --ink: #eceefb;
+    --mut: #9096b5;
+    --line: #252a45;
+  }
+}

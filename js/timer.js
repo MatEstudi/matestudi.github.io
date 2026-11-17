@@ -1,86 +1,95 @@
-import { POMO } from './config.js';
-import { bell, hm, toast } from './utils.js';
-import { S, addTime } from './state.js';
-import { save, loadTotals } from './storage.js';
+/** Study timer: free mode and Pomodoro 50/10. */
+import { DAY_MS, MAX_SESSIONS, MIN_SESSION_SECONDS, POMODORO_SECONDS } from './config.js';
+import { state, emptyTotals } from './state.js';
+import { pullProgressFromStorage, save } from './storage.js';
+import { sync } from './services/community.js';
+import { render } from './ui/renderer.js';
+import { paint } from './views/study-view.js';
+import { toast } from './utils/dom.js';
+import { dateKey, formatDuration } from './utils/format.js';
 
-let last = 0;
+let lastTick = 0;
 let loop = null;
 let tickCount = 0;
-let handlers = {
-  paint: () => {},
-  render: () => {},
-  sync: () => {}
-};
 
-export function registerTimerHandlers(h) {
-  handlers = { ...handlers, ...h };
+function addTime(subjectId, seconds) {
+  state.tot[subjectId] += seconds;
+  const key = dateKey();
+  const entry = state.hist[key] || (state.hist[key] = { t: 0, ...emptyTotals() });
+  entry[subjectId] += seconds;
+  entry.t += seconds;
 }
 
-export function getLast() {
-  return last;
+function bell() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.frequency.value = 880;
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    gain.gain.setValueAtTime(.2, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + 1.4);
+    osc.start();
+    osc.stop(ctx.currentTime + 1.5);
+  } catch { /* audio not available */ }
 }
 
-export function setLast(v) {
-  last = v;
-}
-
-export function getTickCount() {
-  return tickCount;
-}
-
-export const ringFrac = () =>
-  S.mode === 'free' ? (S.cur % 60) / 60 : 1 - S.rem / POMO[S.phase];
-
+/** Saves the current session in the history (if long enough) and resets it. */
 function endSession(note) {
-  if (S.cur >= 10) {
-    S.sess.unshift({ s: S.run || S.sel, d: S.cur, at: Date.now(), n: note });
-    S.sess = S.sess.slice(0, 50);
+  if (state.cur >= MIN_SESSION_SECONDS) {
+    state.sess.unshift({ s: state.run || state.sel, d: state.cur, at: Date.now(), n: note });
+    state.sess = state.sess.slice(0, MAX_SESSIONS);
   }
-  S.cur = 0;
+  state.cur = 0;
+}
+
+/** Re-renders the tabs that show live data (stats, community) every ~10 s while timing. */
+function refreshPassiveViews() {
+  const passive = (state.view === 'group' && state.gv !== 'chat') || state.view === 'stats';
+  if (passive && tickCount % 10 === 0 && document.activeElement.tagName !== 'INPUT') render();
 }
 
 function tick() {
-  const now = Date.now();
-  const d = Math.floor((now - last) / 1000);
-  if (d < 1 || !S.run) return;
-  last += d * 1000;
+  const elapsed = Math.floor((Date.now() - lastTick) / 1000);
+  if (elapsed < 1 || !state.run) return;
+  lastTick += elapsed * 1000;
 
-  if (S.mode === 'free') {
-    S.cur += d;
-    addTime(S.run, d);
+  if (state.mode === 'free') {
+    state.cur += elapsed;
+    addTime(state.run, elapsed);
   } else {
-    S.rem -= d;
-    if (S.phase === 0) {
-      S.cur += d;
-      addTime(S.run, d);
+    state.rem -= elapsed;
+    if (state.phase === 0) {
+      state.cur += elapsed;
+      addTime(state.run, elapsed);
     }
-    if (S.rem <= 0) {
+    if (state.rem <= 0) {
       bell();
-      if (S.phase === 0) {
+      if (state.phase === 0) {
         endSession('Pomodoro');
-        S.phase = 1;
-        S.rem = POMO[1];
+        state.phase = 1;
+        state.rem = POMODORO_SECONDS[1];
         toast('Pomodoro completado. Descansa 10 minutos.');
       } else {
-        S.phase = 0;
-        S.rem = POMO[0];
-        S.run = null;
+        state.phase = 0;
+        state.rem = POMODORO_SECONDS[0];
         stop();
         toast('Descanso terminado.');
-        handlers.render();
+        render();
       }
     }
   }
 
-  tickCount++;
-  handlers.paint();
-  if (tickCount % 30 === 0) handlers.sync();
+  paint();
+  refreshPassiveViews();
+  if (++tickCount % 30 === 0) sync();
   save();
 }
 
-export function start() {
+function start() {
   if (!loop) {
-    last = Date.now();
+    lastTick = Date.now();
     loop = setInterval(tick, 300);
   }
 }
@@ -88,31 +97,36 @@ export function start() {
 export function stop() {
   clearInterval(loop);
   loop = null;
-  S.run = null;
+  state.run = null;
 }
 
 export function toggle() {
-  if (S.run) {
+  if (state.run) {
     stop();
     toast('Pausado');
   } else {
-    loadTotals();
-    S.run = S.sel;
+    pullProgressFromStorage();
+    state.run = state.sel;
     start();
   }
-  handlers.render();
-  handlers.sync(true);
+  render();
+  sync(true);
   save(true);
 }
 
 export function finish() {
-  const had = S.cur;
+  const elapsed = state.cur;
   stop();
-  endSession(S.mode === 'pomo' ? 'Pomodoro' : 'Libre');
-  if (had >= 10) toast('Sesión guardada: ' + hm(had));
-  S.phase = 0;
-  S.rem = POMO[0];
-  handlers.render();
-  handlers.sync(true);
+  endSession(state.mode === 'pomo' ? 'Pomodoro' : 'Libre');
+  if (elapsed >= MIN_SESSION_SECONDS) toast('Sesión guardada: ' + formatDuration(elapsed));
+  state.phase = 0;
+  state.rem = POMODORO_SECONDS[0];
+  render();
+  sync(true);
   save(true);
+}
+
+/** Caps the time to catch up after the tab was hidden to 24 h. */
+export function capCatchUp() {
+  if (state.run) lastTick = Date.now() - Math.min(Date.now() - lastTick, DAY_MS);
 }

@@ -1,11 +1,33 @@
-import { POMO, IDS, COLORS } from './config.js';
-import { dk, monday } from './utils.js';
+/**
+ * The single, mutable application state.
+ *
+ * The keys are short on purpose: they are persisted in localStorage and in the
+ * backup files, so renaming them would break existing data.
+ *
+ *   view   active tab: 'study' | 'stats' | 'group'
+ *   sel    selected subject id
+ *   mode   timer mode: 'free' | 'pomo'
+ *   rank   ranking period: 'daily' | 'weekly' | 'total'
+ *   gv     community sub-view: 'friends' | 'rank' | 'chat'
+ *   range  days shown in the consistency chart: 7 | 30
+ *   nick   nickname shown to the community
+ *   color  avatar colour
+ *   goalD  daily goal (hours)        goalW  weekly goal (hours)
+ *   tot    total seconds per subject
+ *   hist   per-day seconds: { 'YYYY-MM-DD': { t: total, <subjectId>: seconds } }
+ *   sess   most recent finished sessions
+ *   run    id of the subject being timed, or null when paused (never persisted)
+ *   cur    seconds of the current session
+ *   phase  pomodoro phase: 0 = study, 1 = break
+ *   rem    seconds left in the current pomodoro phase
+ */
+import { COLORS, POMODORO_SECONDS, SUBJECT_IDS } from './config.js';
 
-export const blank = () => ({
-  theme: 'auto',
-  brutal: false,
+export const emptyTotals = () => Object.fromEntries(SUBJECT_IDS.map(id => [id, 0]));
+
+export const createBlankState = () => ({
   view: 'study',
-  sel: 'fonaments',
+  sel: SUBJECT_IDS[0],
   mode: 'free',
   rank: 'daily',
   gv: 'friends',
@@ -14,55 +36,16 @@ export const blank = () => ({
   color: COLORS[0],
   goalD: 3,
   goalW: 15,
-  tot: { fonaments: 0, algebra: 0, analisi: 0 },
+  tot: emptyTotals(),
   hist: {},
   sess: [],
   run: null,
   cur: 0,
   phase: 0,
-  rem: POMO[0]
+  rem: POMODORO_SECONDS[0],
 });
 
-export let S = blank();
+export const state = createBlankState();
 
-export function setState(next) {
-  S = next;
-}
-
-export const day = k => S.hist[k]?.t || 0;
-
-export function addTime(id, d) {
-  S.tot[id] += d;
-  const k = dk();
-  const e = S.hist[k] || (S.hist[k] = { t: 0, fonaments: 0, algebra: 0, analisi: 0 });
-  e[id] += d;
-  e.t += d;
-}
-
-export function stats() {
-  const k = dk();
-  const m = monday();
-  let w = 0;
-  Object.entries(S.hist).forEach(([d, v]) => {
-    const [y, mo, da] = d.split('-').map(Number);
-    if (new Date(y, mo - 1, da) >= m) w += v.t;
-  });
-  return {
-    total: IDS.reduce((a, i) => a + S.tot[i], 0),
-    today: day(k),
-    todayKey: k,
-    week: w,
-    weekKey: dk(m)
-  };
-}
-
-export function streak() {
-  let n = 0;
-  const d = new Date();
-  if (!day(dk(d))) d.setDate(d.getDate() - 1);
-  while (day(dk(d)) > 0) {
-    n++;
-    d.setDate(d.getDate() - 1);
-  }
-  return n;
-}
+/** Replaces every field of the shared state in place (modules keep the same reference). */
+export const replaceState = next => Object.assign(state, next);

@@ -1,112 +1,51 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>MatEstudi</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css">
-<link rel="stylesheet" href="css/brutalist.css">
-<!--
-REGLAS RECOMENDADAS (Firebase Console)
-Firestore:
-  match /databases/{db}/documents { match /users/{uid} {
-    allow read: if request.auth != null;
-    allow write: if request.auth.uid == uid
-      && request.resource.data.nickname is string && request.resource.data.nickname.size() <= 20
-      && request.resource.data.todaySeconds <= 86400 && request.resource.data.totalSeconds >= 0;
-    allow delete: if request.auth.uid == uid; } }
-Realtime Database (publica estas reglas en Realtime Database > Reglas; son JSON válido):
-  {
-    "rules": {
-      "presence": {
-        ".read": "auth!=null",
-        ".indexOn": [
-          "lastSeen"
-        ],
-        "$uid": {
-          ".write": "auth!=null && (auth.uid===$uid || (data.exists() && !newData.exists() && data.child('lastSeen').val() < now-2592000000))",
-          "online": {
-            ".validate": "newData.isBoolean()"
-          },
-          "lastSeen": {
-            ".validate": "newData.isNumber()"
-          },
-          "since": {
-            ".validate": "newData.isNumber()"
-          },
-          "nickname": {
-            ".validate": "newData.isString() && newData.val().length<=20"
-          },
-          "avatarColor": {
-            ".validate": "newData.isString() && newData.val().length<=7"
-          },
-          "active": {
-            ".validate": "newData.isString() && newData.val().length<=30"
-          },
-          "$other": {
-            ".validate": false
-          }
-        }
-      },
-      "chat": {
-        "general": {
-          ".read": "auth!=null",
-          ".indexOn": [
-            "ts"
-          ],
-          "$id": {
-            ".write": "auth!=null && ((!data.exists() && newData.child('uid').val()===auth.uid) || (data.exists() && !newData.exists() && (data.child('uid').val()===auth.uid || data.child('ts').val() < now-604800000)))",
-            ".validate": "newData.hasChildren(['uid','nick','text','ts','color']) && newData.child('text').isString() && newData.child('text').val().length>0 && newData.child('text').val().length<=300 && newData.child('nick').isString() && newData.child('nick').val().length<=20 && newData.child('color').isString() && newData.child('color').val().length<=7 && newData.child('ts').val()===now",
-            "uid": {
-              ".validate": true
-            },
-            "nick": {
-              ".validate": true
-            },
-            "text": {
-              ".validate": true
-            },
-            "ts": {
-              ".validate": true
-            },
-            "color": {
-              ".validate": true
-            },
-            "$other": {
-              ".validate": false
-            }
-          }
-        }
-      }
-    }
-  }
--->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#f5f6fa" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0d1020" media="(prefers-color-scheme: dark)">
+  <meta name="description" content="MatEstudi: cronómetro de estudio, estadísticas y comunidad para estudiar matemáticas.">
+  <title>MatEstudi</title>
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/views/study.css">
+  <link rel="stylesheet" href="css/views/stats.css">
+  <link rel="stylesheet" href="css/views/community.css">
+  <link rel="stylesheet" href="css/views/chat.css">
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <div class="logo"><i>∑</i>MatEstudi</div>
-    <div class="tools">
-      <button class="ib" id="thm" title="Cambiar tema (Shift+clic: modo brutalista)" aria-label="Cambiar tema"></button>
-      <button class="me" id="me" aria-label="Perfil y ajustes"><div class="av" id="meav"></div><span id="mename"></span></button>
-    </div>
-  </header>
-  <nav id="nav">
-    <button data-v="study">Estudiar</button>
-    <button data-v="stats">Estadísticas</button>
-    <button data-v="group">Comunidad</button>
-  </nav>
-  <main id="main"></main>
-</div>
-<dialog id="dlg"></dialog>
-<div id="toast" role="status"></div>
+  <div class="wrap">
+    <header>
+      <div class="logo"><i aria-hidden="true">∑</i>MatEstudi</div>
+      <div class="tools">
+        <button class="me" id="me" aria-label="Perfil y ajustes"><span class="av" id="meav"></span><span id="mename"></span></button>
+      </div>
+    </header>
+    <nav id="nav" aria-label="Secciones">
+      <button data-v="study">Estudiar</button>
+      <button data-v="stats">Estadísticas</button>
+      <button data-v="group">Comunidad</button>
+    </nav>
+    <main id="main"></main>
+  </div>
+  <dialog id="dlg"></dialog>
+  <div id="toast" role="status"></div>
 
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-<script type="module" src="js/main.js"></script>
+  <!-- Firebase (compat build). Deferred scripts run in order, before the module below. -->
+  <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script type="module" src="js/main.js"></script>
 </body>
 </html>

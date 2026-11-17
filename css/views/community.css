@@ -1,0 +1,36 @@
+/* "Comunidad" tab: friends, ranking and presence. */
+.card--notice { margin-bottom: 14px; text-align: center; }
+.hint--offline { margin-bottom: 10px; }
+
+.live { color: var(--live); }
+.gh { font: 700 15px var(--f1); color: var(--mut); margin: 20px 0 10px; }
+
+/* Ranking */
+.list { display: grid; gap: 10px; }
+.m {
+  display: flex; gap: 12px; align-items: center;
+  padding: 14px 16px; border-radius: 18px;
+  background: var(--card); border: 1px solid var(--line);
+}
+.m.me1 { border-color: var(--acc); }
+.m .n { flex: 1; min-width: 0; }
+.m .n b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.m small { color: var(--mut); }
+.m .t { font: 700 16px var(--f1); text-align: right; }
+.pos { width: 26px; text-align: center; font: 700 15px var(--f1); color: var(--mut); }
+
+/* Friend cards */
+.fc { padding: 16px; margin-bottom: 10px; }
+.fc.me1 { border-color: var(--acc); }
+.m0 { display: flex; gap: 12px; align-items: center; }
+.m0 .n { flex: 1; min-width: 0; }
+.m0 .n b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.m0 small { display: block; color: var(--mut); }
+.m0 small.live { color: var(--live); }
+.el { font: 700 20px var(--f1); color: var(--live); font-variant-numeric: tabular-nums; }
+.fs {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+  margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line);
+}
+.fs b { display: block; font: 700 15px var(--f1); }
+.fs span { color: var(--mut); font-size: 12px; }
