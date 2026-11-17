@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MathStudy Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<!--
+REGLAS RECOMENDADAS (Firebase Console)
+Firestore:
+  match /databases/{db}/documents { match /users/{uid} {
+    allow read: if request.auth != null;
+    allow write: if request.auth.uid == uid
+      && request.resource.data.nickname is string && request.resource.data.nickname.size() <= 20
+      && request.resource.data.todaySeconds <= 86400 && request.resource.data.totalSeconds >= 0;
+    allow delete: if request.auth.uid == uid; } }
+Realtime Database (publica estas reglas en Realtime Database > Reglas; son JSON válido):
+  {
+    "rules": {
+      "presence": {
+        ".read": "auth!=null",
+        ".indexOn": [
+          "lastSeen"
+        ],
+        "$uid": {
+          ".write": "auth!=null && (auth.uid===$uid || (data.exists() && !newData.exists() && data.child('lastSeen').val() < now-2592000000))",
+          "online": {
+            ".validate": "newData.isBoolean()"
+          },
+          "lastSeen": {
+            ".validate": "newData.isNumber()"
+          },
+          "since": {
+            ".validate": "newData.isNumber()"
+          },
+          "nickname": {
+            ".validate": "newData.isString() && newData.val().length<=20"
+          },
+          "avatarColor": {
+            ".validate": "newData.isString() && newData.val().length<=7"
+          },
+          "active": {
+            ".validate": "newData.isString() && newData.val().length<=30"
+          },
+          "$other": {
+            ".validate": false
+          }
+        }
+      },
+      "chat": {
+        "general": {
+          ".read": "auth!=null",
+          ".indexOn": [
+            "ts"
+          ],
+          "$id": {
+            ".write": "auth!=null && ((!data.exists() && newData.child('uid').val()===auth.uid) || (data.exists() && !newData.exists() && (data.child('uid').val()===auth.uid || data.child('ts').val() < now-604800000)))",
+            ".validate": "newData.hasChildren(['uid','nick','text','ts','color']) && newData.child('text').isString() && newData.child('text').val().length>0 && newData.child('text').val().length<=300 && newData.child('nick').isString() && newData.child('nick').val().length<=20 && newData.child('color').isString() && newData.child('color').val().length<=7 && newData.child('ts').val()===now",
+            "uid": {
+              ".validate": true
+            },
+            "nick": {
+              ".validate": true
+            },
+            "text": {
+              ".validate": true
+            },
+            "ts": {
+              ".validate": true
+            },
+            "color": {
+              ".validate": true
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        }
+      }
+    }
+  }
+-->
+<style>
+:root{--bg:#f5f6fa;--card:#fff;--ink:#161a2e;--mut:#6b7190;--line:#e6e8f0;--acc:#6366f1;--soft:color-mix(in srgb,var(--acc) 11%,transparent);--r:22px;
+--f1:'Bricolage Grotesque','Trebuchet MS',system-ui,sans-serif;--f2:'Instrument Sans',system-ui,-apple-system,'Segoe UI',sans-serif}
+:root[data-t=dark]{--bg:#0d1020;--card:#161a2e;--ink:#eceefb;--mut:#9096b5;--line:#252a45}
+*{box-sizing:border-box;margin:0}
+html{background:var(--bg)}
+body{font:15px/1.5 var(--f2);color:var(--ink);background:radial-gradient(900px 420px at 50% -120px,var(--soft),transparent),var(--bg);min-height:100vh;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);transition:background .4s}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.wrap{max-width:760px;margin:0 auto;padding:0 18px 60px}
+header{display:flex;align-items:center;justify-content:space-between;padding:18px 0 10px}
+.logo{font:700 20px var(--f1);display:flex;gap:10px;align-items:center}
+.logo i{width:30px;height:30px;border-radius:10px;background:var(--acc);color:#fff;display:grid;place-items:center;font-style:normal;transition:background .4s}
+.tools{display:flex;gap:8px;align-items:center}
+.ib{width:38px;height:38px;border-radius:12px;background:var(--card);border:1px solid var(--line);font-size:16px}
+.me{display:flex;align-items:center;gap:8px;padding:4px 12px 4px 4px;border-radius:99px;background:var(--card);border:1px solid var(--line);font-weight:500}
+.av{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;color:#fff;font:700 13px var(--f1);flex:none;position:relative}
+.av.on::after{content:'';position:absolute;right:-1px;bottom:-1px;width:10px;height:10px;border-radius:50%;background:#22c55e;border:2px solid var(--card)}
+nav{display:flex;gap:4px;padding:4px;border-radius:16px;background:var(--card);border:1px solid var(--line);margin:8px 0 22px}
+nav button{flex:1;padding:9px;border-radius:12px;font-weight:600;color:var(--mut);transition:.2s}
+nav button.on{background:var(--acc);color:#fff}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:22px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.chip{padding:8px 14px;border-radius:99px;border:1px solid var(--line);font-weight:500;display:flex;gap:8px;align-items:center;transition:.2s}
+.chip b{width:9px;height:9px;border-radius:50%}
+.chip.on{background:var(--soft);border-color:var(--acc)}
+.focus{text-align:center;padding:30px 22px 26px}
+.ring{position:relative;width:min(300px,74vw);aspect-ratio:1;margin:22px auto 8px}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring circle{fill:none;stroke-width:9;stroke-linecap:round}
+.ring .tr{stroke:var(--line)}.ring .pg{stroke:var(--acc);transition:stroke-dashoffset 1s linear,stroke .4s}
+.clock{position:absolute;inset:0;display:grid;place-content:center;gap:2px}
+.clock b{font:700 clamp(44px,13vw,62px)/1 var(--f1);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.clock span{color:var(--mut);font-size:13px}
+.ctl{display:flex;gap:10px;justify-content:center;align-items:center;margin-top:14px}
+.go{padding:14px 34px;border-radius:99px;background:var(--acc);color:#fff;font:600 16px var(--f2);transition:transform .15s,background .4s}
+.go:active{transform:scale(.96)}
+.sec{padding:14px 18px;border-radius:99px;border:1px solid var(--line);font-weight:500;color:var(--mut)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:99px;padding:3px;margin-top:18px}
+.seg button{padding:6px 14px;border-radius:99px;color:var(--mut);font-size:13px;font-weight:500}
+.seg button.on{background:var(--soft);color:var(--ink)}
+.row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}
+.st{padding:16px}.st b{display:block;font:700 24px var(--f1)}.st span{color:var(--mut);font-size:13px}
+.bar{height:7px;border-radius:9px;background:var(--line);margin-top:10px;overflow:hidden}.bar i{display:block;height:100%;background:var(--acc);border-radius:9px;transition:width .5s}
+h2{font:700 18px var(--f1);margin:26px 0 12px}
+.week{display:flex;gap:8px;align-items:flex-end;height:110px}
+.week div{flex:1;text-align:center;font-size:12px;color:var(--mut);display:flex;flex-direction:column;justify-content:flex-end;height:100%;gap:6px}
+.week i{display:block;background:var(--acc);border-radius:8px;min-height:4px;opacity:.85}
+.list{display:grid;gap:10px}
+.m{display:flex;gap:12px;align-items:center;padding:14px 16px;border-radius:18px;background:var(--card);border:1px solid var(--line)}
+.m.me1{border-color:var(--acc)}
+.m .n{flex:1;min-width:0}.m .n b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.m small{color:var(--mut)}.m .t{font:700 16px var(--f1);text-align:right}.pos{width:26px;text-align:center;font:700 15px var(--f1);color:var(--mut)}
+.live{color:#16a34a}
+.empty{text-align:center;color:var(--mut);padding:34px 10px}
+.tk{display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.tk:last-child{border:0}.tk input[type=checkbox]{accent-color:var(--acc);width:18px;height:18px}
+.tk.d span{text-decoration:line-through;color:var(--mut)}.tk span{flex:1}
+.add{display:flex;gap:8px;margin-top:12px}
+input[type=text],input[type=number],textarea{width:100%;padding:11px 14px;border-radius:14px;border:1px solid var(--line);background:var(--bg)}
+textarea{min-height:170px;resize:vertical;line-height:1.6}
+.sy{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}.sy button{min-width:34px;padding:5px 8px;border-radius:9px;border:1px solid var(--line);background:var(--bg)}
+.mini{padding:11px 18px;border-radius:14px;background:var(--acc);color:#fff;font-weight:600}
+dialog{border:0;border-radius:var(--r);padding:24px;width:min(420px,92vw);background:var(--card);color:var(--ink);box-shadow:0 30px 80px rgba(0,0,0,.35)}
+dialog::backdrop{background:rgba(8,10,24,.55);backdrop-filter:blur(3px)}
+dialog label{display:block;margin:14px 0 6px;font-weight:600;font-size:14px}
+.cols{display:flex;gap:8px;flex-wrap:wrap}.cols button{width:30px;height:30px;border-radius:50%;border:3px solid transparent}.cols button.on{border-color:var(--ink)}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}
+.ghost{padding:10px 14px;border-radius:12px;border:1px solid var(--line);font-weight:500}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translate(-50%,30px);background:var(--ink);color:var(--bg);padding:11px 18px;border-radius:99px;opacity:0;transition:.3s;pointer-events:none;z-index:9;font-weight:500;max-width:90vw}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+.hint{color:var(--mut);font-size:13px;text-align:center;margin-top:10px}
+nav button{font-size:14px}
+.goals{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.goal b{font:700 22px var(--f1)}.goal small{display:block;color:var(--mut);margin-top:8px;min-height:38px}
+.goal label{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:var(--mut)}.goal input{width:70px;padding:6px 10px}
+.kv{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.dist{display:grid;gap:14px}.dist div div{display:flex;justify-content:space-between;font-weight:500}.dist small{color:var(--mut)}
+.hd{display:flex;justify-content:space-between;align-items:center;margin:26px 0 12px}.hd h2{margin:0}.hd .seg{margin:0}
+.ses{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line)}.ses:last-child{border:0}.ses small{color:var(--mut)}
+.fc{padding:16px;margin-bottom:10px}.fc.me1{border-color:var(--acc)}
+.m0{display:flex;gap:12px;align-items:center}.m0 .n{flex:1;min-width:0}.m0 .n b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.el{font:700 20px var(--f1);color:#16a34a;font-variant-numeric:tabular-nums}
+.m0 small{display:block;color:var(--mut)}.m0 small.live{color:#16a34a}
+.fs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.fs b{display:block;font:700 15px var(--f1)}.fs span{color:var(--mut);font-size:12px}
+.gh{font:700 15px var(--f1);color:var(--mut);margin:20px 0 10px}
+.bd{display:inline-block;min-width:18px;padding:0 5px;border-radius:99px;background:#22c55e;color:#fff;font-size:11px;line-height:18px;margin-left:4px}
+.chat{display:flex;flex-direction:column;height:min(62vh,560px);min-height:320px;padding:0}
+.cl{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding:16px}
+.msg{display:flex;gap:8px;align-items:flex-end;max-width:86%}.msg.mine{align-self:flex-end;flex-direction:row-reverse}
+.msg .av{width:26px;height:26px;font-size:12px}
+.bb{background:var(--bg);border-radius:16px;padding:8px 12px;min-width:0}.mine .bb{background:var(--acc);color:#fff}
+.bb small{display:block;font-size:11px;color:var(--mut)}.mine .bb small{color:rgba(255,255,255,.8)}
+.bb p{white-space:pre-wrap;word-break:break-word}
+.lk{font-size:11px;color:inherit;opacity:.75;text-decoration:underline;margin-left:6px}
+.cin{display:flex;gap:8px;padding:12px;border-top:1px solid var(--line)}
+@media(max-width:480px){.goals{grid-template-columns:1fr}}
+@media(max-width:480px){.row{grid-template-columns:1fr 1fr}.row .st:first-child{grid-column:span 2}.me span{display:none}.me{padding:4px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo"><i>∑</i>MathStudy</div>
+    <div class="tools">
+      <button class="ib" id="thm" title="Cambiar tema" aria-label="Cambiar tema"></button>
+      <button class="me" id="me" aria-label="Perfil y ajustes"><div class="av" id="meav"></div><span id="mename"></span></button>
+    </div>
+  </header>
+  <nav id="nav">
+    <button data-v="study">Estudiar</button>
+    <button data-v="stats">Estadísticas</button>
+    <button data-v="group">Comunidad</button>
+    <button data-v="org">Apuntes</button>
+  </nav>
+  <main id="main"></main>
+</div>
+<dialog id="dlg"></dialog>
+<div id="toast" role="status"></div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script>
+/* ---------- Datos base ---------- */
+const KEY='mathstudy_hub_v2',OLD='mathstudy_hub_v1',POMO=[50*60,10*60];
+const SUBJ={fonaments:{n:'Fonaments',c:'#6366f1'},algebra:{n:'Àlgebra Lineal I',c:'#10b981'},analisi:{n:'Anàlisi Matemàtic I',c:'#f43f5e'}};
+const IDS=Object.keys(SUBJ),COLORS=['#6366f1','#10b981','#f43f5e','#f59e0b','#8b5cf6','#0ea5e9','#ec4899','#14b8a6'];
+const SYM=['∀','∃','∈','⊂','∪','∩','ℝ','ℕ','ℤ','∑','∫','∞','⇒','⇔','≠','≤','≥','λ','ε','δ'];
+const fbCfg={apiKey:"AIzaSyDtBjHqSx7QyJZXlR7EsYAPmTadIu2hmnU",authDomain:"math-study-df821.firebaseapp.com",databaseURL:"https://math-study-df821-default-rtdb.europe-west1.firebasedatabase.app",projectId:"math-study-df821",storageBucket:"math-study-df821.firebasestorage.app",messagingSenderId:"278188701491",appId:"1:278188701491:web:703b085ecc312d0f9ef046"};
+const blank=()=>({theme:'light',view:'study',sel:'fonaments',mode:'free',rank:'daily',gv:'friends',range:7,nick:'',color:COLORS[0],goalD:3,goalW:15,
+  tot:{fonaments:0,algebra:0,analisi:0},hist:{},sess:[],tasks:{fonaments:[],algebra:[],analisi:[]},notes:{fonaments:'',algebra:'',analisi:''},
+  run:null,cur:0,phase:0,rem:POMO[0]});
+let S=blank(),last=0,loop=null,tick5=0,saveT=0;
+const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num=(v,max=1e9)=>Math.min(max,Math.max(0,Math.floor(+v||0)));
+const dk=(d=new Date())=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const monday=()=>{const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-((d.getDay()+6)%7));return d};
+const hm=s=>{s=Math.floor(s);const h=Math.floor(s/3600),m=Math.floor(s%3600/60);return h?`${h} h ${m} min`:`${m} min`};
+const clock=s=>{s=Math.max(0,Math.floor(s));const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60,p=n=>String(n).padStart(2,'0');return (h?h+':':'')+p(m)+':'+p(x)};
+const day=k=>S.hist[k]?.t||0;
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2600)}
+
+/* ---------- Persistencia (con migración de la v1 y validación) ---------- */
+function clean(p){
+  const b=blank(),o=p&&typeof p==='object'?p:{};
+  b.theme=o.theme==='dark'?'dark':'light';
+  b.nick=String(o.nick??o.userProfile?.nickname??'').trim().slice(0,20);
+  b.color=COLORS.includes(o.color??o.userProfile?.avatarColor)?(o.color??o.userProfile.avatarColor):COLORS[0];
+  b.goalD=Math.min(24,num(o.goalD??o.dailyGoalHours)||3);b.goalW=Math.min(168,num(o.goalW??o.weeklyGoalHours)||15);
+  b.sel=IDS.includes(o.sel)?o.sel:'fonaments';b.range=o.range===30?30:7;b.mode=o.mode==='pomo'?'pomo':'free';
+  IDS.forEach(i=>{
+    b.tot[i]=num(o.tot?.[i]??o.subjects?.[i]?.totalSeconds);
+    b.notes[i]=String(o.notes?.[i]??o.subjects?.[i]?.notes??'').slice(0,20000);
+    const ts=o.tasks?.[i]??o.subjects?.[i]?.tasks;
+    b.tasks[i]=Array.isArray(ts)?ts.slice(0,100).map(t=>({id:String(t.id||Math.random()),text:String(t.text||'').slice(0,200),done:!!(t.done??t.completed)})):[];
+  });
+  const h=o.hist??o.dailyHistory;
+  if(h&&typeof h==='object')Object.keys(h).filter(k=>/^\d{4}-\d{2}-\d{2}$/.test(k)).forEach(k=>{
+    const e={t:0};IDS.forEach(i=>{e[i]=num(h[k]?.[i],86400);e.t+=e[i]});if(e.t)b.hist[k]=e});
+  b.sess=(Array.isArray(o.sess??o.sessions)?(o.sess??o.sessions):[]).map(x=>({s:x.s??x.subjectId,d:num(x.d??x.durationSeconds,86400),at:x.at??(Date.parse(x.dateISO)||0),n:String(x.n??x.note??'').slice(0,60)})).filter(x=>IDS.includes(x.s)&&x.d>0).slice(0,50);
+  return b;
+}
+function load(){let r;try{r=JSON.parse(localStorage.getItem(KEY)||localStorage.getItem(OLD))}catch(e){}S=clean(r)}
+function save(now){clearTimeout(saveT);const go=()=>{try{localStorage.setItem(KEY,JSON.stringify({...S,run:null}))}catch(e){}};now?go():saveT=setTimeout(go,3000)}
+addEventListener('pagehide',()=>{save(true);sync(true,true)});
+document.addEventListener('visibilitychange',()=>syncListeners());
+/* Varias pestañas: la que arranca el cronómetro manda; las demás se actualizan y se pausan. */
+addEventListener('storage',e=>{if(e.key!==KEY||!e.newValue)return;const v=S.view;load();S.view=v;stop();render();sync()});
+
+/* ---------- Tiempo ---------- */
+function addTime(id,d){
+  S.tot[id]+=d;const k=dk(),e=S.hist[k]||(S.hist[k]={t:0,fonaments:0,algebra:0,analisi:0});e[id]+=d;e.t+=d;
+}
+function tick(){
+  const now=Date.now(),d=Math.floor((now-last)/1000);if(d<1||!S.run)return;last+=d*1000;
+  if(S.mode==='free'){S.cur+=d;addTime(S.run,d)}
+  else{S.rem-=d;if(S.phase===0){S.cur+=d;addTime(S.run,d)}
+    if(S.rem<=0){bell();if(S.phase===0){endSession('Pomodoro');S.phase=1;S.rem=POMO[1];toast('Pomodoro completado. Descansa 10 minutos.')}
+      else{S.phase=0;S.rem=POMO[0];S.run=null;stop();toast('Descanso terminado.');render()}}}
+  paint();if(++tick5%30===0)sync();save();
+}
+function start(){if(!loop){last=Date.now();loop=setInterval(tick,300)}}
+function stop(){clearInterval(loop);loop=null;S.run=null}
+function toggle(){
+  if(S.run){stop();toast('Pausado')}
+  else{load2();S.run=S.sel;start()}
+  render();sync(true);save(true);
+}
+function load2(){try{const r=JSON.parse(localStorage.getItem(KEY));if(r){const o=clean(r);S.tot=o.tot;S.hist=o.hist;S.sess=o.sess}}catch(e){}}
+function endSession(note){if(S.cur>=10){S.sess.unshift({s:S.run||S.sel,d:S.cur,at:Date.now(),n:note});S.sess=S.sess.slice(0,50)}S.cur=0}
+function finish(){const had=S.cur;stop();endSession(S.mode==='pomo'?'Pomodoro':'Libre');if(had>=10)toast('Sesión guardada: '+hm(had));S.phase=0;S.rem=POMO[0];render();sync(true);save(true)}
+function bell(){try{const a=new(window.AudioContext||webkitAudioContext)(),o=a.createOscillator(),g=a.createGain();o.frequency.value=880;o.connect(g);g.connect(a.destination);g.gain.setValueAtTime(.2,a.currentTime);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+1.4);o.start();o.stop(a.currentTime+1.5)}catch(e){}}
+
+/* ---------- Estadísticas ---------- */
+function stats(){
+  const k=dk(),m=monday();let w=0;
+  Object.entries(S.hist).forEach(([d,v])=>{const[y,mo,da]=d.split('-').map(Number);if(new Date(y,mo-1,da)>=m)w+=v.t});
+  return{total:IDS.reduce((a,i)=>a+S.tot[i],0),today:day(k),todayKey:k,week:w,weekKey:dk(m)};
+}
+function streak(){let n=0;const d=new Date();if(!day(dk(d)))d.setDate(d.getDate()-1);while(day(dk(d))>0){n++;d.setDate(d.getDate()-1)}return n}
+
+/* ---------- Firebase (comunidad) ---------- */
+let fb={ok:false,db:null,rt:null,uid:'',users:{},pres:{}},lastFs=0,lastFsSig='',lastProf='',lastPrSig='',unsubFs=null,off=0,ringPrev=0;
+async function initFb(){
+  try{
+    if(typeof firebase==='undefined')throw 0;
+    firebase.apps.length||firebase.initializeApp(fbCfg);
+    const au=firebase.auth();fb.db=firebase.firestore();fb.rt=firebase.database();
+    const u=await new Promise((r,j)=>{const x=au.onAuthStateChanged(v=>{x();r(v)},j)});
+    if(!u)await au.signInAnonymously();
+    fb.uid=au.currentUser.uid;fb.ok=true;fb.rt.ref('.info/serverTimeOffset').on('value',s=>{off=s.val()||0});
+    fb.rt.ref('.info/connected').on('value',s=>{if(s.val()){
+      fb.rt.ref('presence/'+fb.uid).onDisconnect().update({online:false,lastSeen:firebase.database.ServerValue.TIMESTAMP,active:null,since:null}).catch(()=>{});lastPrSig='';sync(true)}});
+    fb.rt.ref('presence').on('value',s=>{fb.pres=s.val()||{};if(S.view==='group'&&S.gv!=='chat')render();else badge()});
+    syncListeners();badge();setTimeout(prune,8000);
+  }catch(e){fb.ok=false;console.warn('Modo local:',e)}
+}
+/* Firestore solo se LEE con la pestaña Comunidad abierta y solo usuarios activos en los últimos 30 días. */
+function listenUsers(on){
+  if(!fb.ok)return;
+  if(on&&!unsubFs){
+    unsubFs=fb.db.collection('users').where('updatedAt','>',Date.now()-30*864e5).onSnapshot(s=>{
+      s.docChanges().forEach(c=>{c.type==='removed'?delete fb.users[c.doc.id]:fb.users[c.doc.id]=c.doc.data()});
+      if(S.view==='group'&&document.activeElement.tagName!=='INPUT')render();
+    },e=>{console.warn('Firestore:',e);unsubFs=null});
+  }else if(!on&&unsubFs){unsubFs();unsubFs=null}
+}
+/* Escrituras mínimas:
+   - Presencia (Realtime DB): solo cuando cambia tu estado (empezar, pausar, perfil). Sin latidos periódicos.
+   - Estadísticas (Firestore): al pausar, al cerrar, o cada 5 min mientras estudias; y nunca si no han cambiado. */
+function sync(force,final){
+  if(!fb.ok||!S.nick)return;
+  const now=Date.now(),st=stats(),a=S.run?SUBJ[S.run].n:null;
+  const ps=JSON.stringify([S.nick,S.color,a]);
+  if(ps!==lastPrSig){lastPrSig=ps;
+    fb.rt.ref('presence/'+fb.uid).update({online:true,lastSeen:firebase.database.ServerValue.TIMESTAMP,nickname:S.nick,avatarColor:S.color,active:a,since:S.run?now+off-S.cur*1000:null}).catch(()=>{})}
+  const fs=JSON.stringify([S.nick,S.color,Math.floor(st.total/60),Math.floor(st.today/60),Math.floor(st.week/60)]);
+  if(fs===lastFsSig)return;
+  const prof=S.nick+S.color,due=lastFs===0||final||prof!==lastProf||(!S.run&&force)||now-lastFs>=300000;
+  if(!due)return;
+  lastFs=now;lastFsSig=fs;lastProf=prof;
+  fb.db.collection('users').doc(fb.uid).set({nickname:S.nick,avatarColor:S.color,totalSeconds:st.total,todaySeconds:st.today,todayDateKey:st.todayKey,weeklySeconds:st.week,weekStartKey:st.weekKey,updatedAt:now+off},{merge:true}).catch(()=>{});
+}
+function members(){
+  const tk=dk(),wk=dk(monday()),now=Date.now(),out=[];
+  new Set([...Object.keys(fb.users),...Object.keys(fb.pres)]).forEach(id=>{
+    const me=id===fb.uid,u={...fb.users[id],...fb.pres[id]};
+    if(me&&S.nick){const st=stats();Object.assign(u,{nickname:S.nick,avatarColor:S.color,totalSeconds:st.total,todaySeconds:st.today,todayDateKey:tk,weeklySeconds:st.week,weekStartKey:wk,online:fb.ok,active:S.run?SUBJ[S.run].n:null,since:S.run?now+off-S.cur*1000:null,lastSeen:now,updatedAt:now})}
+    if(!u.nickname)return;
+    if(!u.online&&now-(u.updatedAt||0)>30*864e5)return;           // usuarios fantasma
+    const extra=(!me&&u.online&&u.active)?Math.min(600,Math.max(0,(now+off-(Math.max(+u.updatedAt||0,+u.since||0)||now+off))/1000)):0; // frescura de datos ajenos
+    out.push({id,me,nick:String(u.nickname).slice(0,20),color:COLORS.includes(u.avatarColor)?u.avatarColor:COLORS[0],on:!!u.online,act:u.online?u.active:null,since:+u.since||0,seen:+u.lastSeen||+u.updatedAt||0,
+      daily:(u.todayDateKey===tk?num(u.todaySeconds,86400):0)+extra,weekly:(u.weekStartKey===wk?num(u.weeklySeconds):0)+extra,total:num(u.totalSeconds)+extra});
+  });return out;
+}
+function badge(){const on=members().filter(m=>m.on&&!m.me).length,b=$('#nav [data-v=group]');if(b)b.innerHTML='Comunidad'+(on?`<span class="bd">${on}</span>`:'')}
+
+/* ---------- Interfaz ---------- */
+function setAcc(){const r=document.documentElement;r.dataset.t=S.theme;r.style.setProperty('--acc',SUBJ[S.sel].c);$('#thm').textContent=S.theme==='dark'?'☀︎':'☾'}
+function paint(){
+  const st=stats(),g=S.goalD*3600,t=$('#tm');if(!t)return;
+  t.textContent=clock(S.mode==='free'?S.cur:S.rem);
+  const circ=2*Math.PI*45,frac=ringFrac(),pg=$('#pg');
+  if(frac<ringPrev){pg.style.transition='none';pg.style.strokeDashoffset=circ*(1-frac);pg.getBoundingClientRect();pg.style.transition=''}
+  else pg.style.strokeDashoffset=circ*(1-frac);
+  pg.style.strokeOpacity=frac>.002?1:0;ringPrev=frac;
+  $('#sub').textContent=S.mode==='pomo'&&S.phase?'Descanso':(S.run?'Estudiando '+SUBJ[S.run].n:'Sesión de hoy');
+  $('#v-today').textContent=hm(st.today);$('#gbar').style.width=Math.min(100,st.today/g*100)+'%';
+  $('#gtxt').textContent=`${Math.round(Math.min(100,st.today/g*100))}% de tu meta de ${S.goalD} h`;
+  $('#v-week').textContent=hm(st.week);$('#v-sel').textContent=hm(S.tot[S.sel]);
+  if(((S.view==='group'&&S.gv!=='chat')||S.view==='stats')&&tick5%10===0&&document.activeElement.tagName!=='INPUT')render();
+}
+const ringFrac=()=>S.mode==='free'?(S.cur%60)/60:1-S.rem/POMO[S.phase];
+function study(){
+  const circ=2*Math.PI*45,f0=ringFrac();ringPrev=f0;
+  return `<div class="card focus">
+  <div class="chips">${IDS.map(i=>`<button class="chip ${i===S.sel?'on':''}" data-sub="${i}"><b style="background:${SUBJ[i].c}"></b>${SUBJ[i].n}</button>`).join('')}</div>
+  <div class="ring"><svg viewBox="0 0 100 100"><circle class="tr" cx="50" cy="50" r="45" style="stroke-width:5"/><circle class="pg" id="pg" cx="50" cy="50" r="45" style="stroke-width:5;stroke-dasharray:${circ};stroke-dashoffset:${circ*(1-f0)};stroke-opacity:${f0>.002?1:0}"/></svg>
+  <div class="clock"><b id="tm"></b><span id="sub"></span></div></div>
+  <div class="ctl"><button class="go" id="go">${S.run?'Pausar':'Empezar'}</button>${S.cur>0||S.run?'<button class="sec" id="fin">Terminar</button>':''}</div>
+  <div class="seg"><button data-mode="free" class="${S.mode==='free'?'on':''}">Libre</button><button data-mode="pomo" class="${S.mode==='pomo'?'on':''}">Pomodoro 50/10</button></div></div>
+  <div class="row"><div class="card st"><b id="v-today"></b><span>Hoy</span><div class="bar"><i id="gbar"></i></div><div class="hint" id="gtxt" style="text-align:left;margin-top:6px"></div></div>
+  <div class="card st"><b id="v-week"></b><span>Esta semana (meta ${S.goalW} h)</span></div>
+  <div class="card st"><b>${streak()} ${streak()===1?'día':'días'}</b><span>Racha seguida</span></div></div>
+  <h2>Últimos 7 días</h2>${weekChart()}
+  <div class="hint">${esc(SUBJ[S.sel].n)}: <b id="v-sel"></b> acumuladas</div>`;
+}
+function weekChart(){
+  const ds=[...Array(7)].map((_,i)=>{const d=new Date();d.setDate(d.getDate()-6+i);return d}),vals=ds.map(d=>day(dk(d))),mx=Math.max(3600,...vals);
+  return `<div class="card"><div class="week">${ds.map((d,i)=>`<div title="${hm(vals[i])}"><i style="height:${vals[i]/mx*100}%"></i>${'DLMXJVS'[d.getDay()===0?0:d.getDay()]}</div>`).join('')}</div></div>`;
+}
+function statsView(){
+  const st=stats(),n=S.range,gD=S.goalD*3600,gW=S.goalW*3600;
+  const ds=[...Array(n)].map((_,i)=>{const d=new Date();d.setDate(d.getDate()-(n-1)+i);return d}),vals=ds.map(d=>day(dk(d)));
+  const mx=Math.max(gD,...vals),act=vals.filter(v=>v>0),avg=act.length?act.reduce((a,b)=>a+b,0)/act.length:0,hit=vals.filter(v=>v>=gD).length;
+  const rec=Object.values(S.hist).reduce((m,v)=>Math.max(m,v.t),0),rd=7-((new Date().getDay()+6)%7),left=Math.max(0,gW-st.week);
+  const pd=Math.min(100,st.today/gD*100),pw=Math.min(100,st.week/gW*100),tot=Math.max(1,st.total);
+  const ses=S.sess.slice(0,6);
+  return `<div class="goals">
+  <div class="card goal"><span>Meta diaria</span><br><b>${hm(st.today)} / ${S.goalD} h</b><div class="bar"><i style="width:${pd}%"></i></div>
+    <small>${st.today>=gD?'Meta de hoy cumplida.':'Te faltan '+hm(gD-st.today)+' hoy.'}</small>
+    <label for="qd">Horas al día</label><input type="number" id="qd" min="1" max="24" value="${S.goalD}"></div>
+  <div class="card goal"><span>Meta semanal</span><br><b>${hm(st.week)} / ${S.goalW} h</b><div class="bar"><i style="width:${pw}%"></i></div>
+    <small>${left<=0?'Meta de la semana cumplida.':'Te faltan '+hm(left)+': unos '+hm(left/rd)+' al día hasta el domingo.'}</small>
+    <label for="qw">Horas a la semana</label><input type="number" id="qw" min="1" max="168" value="${S.goalW}"></div></div>
+  <div class="hd"><h2>Constancia</h2><div class="seg"><button data-range="7" class="${n===7?'on':''}">7 días</button><button data-range="30" class="${n===30?'on':''}">30 días</button></div></div>
+  <div class="card"><div class="week" style="gap:${n>7?3:8}px">${ds.map((d,i)=>`<div title="${hm(vals[i])}"><i style="height:${vals[i]/mx*100}%;opacity:${vals[i]>=gD?1:.4}"></i>${n===7?'DLMXJVS'[d.getDay()]:(i%5===4?d.getDate():'')}</div>`).join('')}</div>
+  <div class="hint">Las barras intensas alcanzaron tu meta diaria (${hit} de ${n} días).</div></div>
+  <h2>Resumen</h2>
+  <div class="kv"><div class="card st"><b>${hm(st.total)}</b><span>Tiempo total</span></div><div class="card st"><b>${act.length?hm(avg):'0 min'}</b><span>Media por día activo</span></div><div class="card st"><b>${hm(rec)}</b><span>Mejor día</span></div></div>
+  <h2>Por asignatura</h2><div class="card dist">${IDS.map(i=>`<div><div><span>${SUBJ[i].n}</span><small>${hm(S.tot[i])} (${Math.round(S.tot[i]/tot*100)}%)</small></div><div class="bar"><i style="width:${S.tot[i]/tot*100}%;background:${SUBJ[i].c}"></i></div></div>`).join('')}</div>
+  <h2>Sesiones recientes</h2><div class="card">${ses.length?ses.map(x=>`<div class="ses"><span>${esc(SUBJ[x.s].n)}<br><small>${x.at?new Date(x.at).toLocaleDateString('es',{day:'numeric',month:'short'}):''} ${esc(x.n)}</small></span><b>${hm(x.d)}</b></div>`).join(''):'<div class="empty" style="padding:10px">Aún no hay sesiones. Pulsa Terminar al acabar una para guardarla.</div>'}</div>`;
+}
+const sNow=()=>Date.now()+off;
+const ago=t=>{if(!t)return 'hace tiempo';const x=Math.max(0,(sNow()-t)/1000);if(x<60)return 'hace un momento';if(x<3600)return 'hace '+Math.floor(x/60)+' min';if(x<86400)return 'hace '+Math.floor(x/3600)+' h';return 'hace '+Math.floor(x/86400)+' d'};
+function friend(m){
+  const st=m.act?`<small class="live">Estudiando ${esc(m.act)}</small>`:m.on?'<small class="live">En línea</small>':`<small>Última conexión ${ago(m.seen)}</small>`;
+  return `<div class="card fc ${m.me?'me1':''}"><div class="m0"><div class="av ${m.on?'on':''}" style="background:${m.color}">${esc(m.nick[0].toUpperCase())}</div>
+  <div class="n"><b>${esc(m.nick)}${m.me?' (tú)':''}</b>${st}</div>${m.act&&m.since?`<div class="el" data-s="${m.since}" title="Tiempo en esta sesión">${clock((sNow()-m.since)/1000)}</div>`:''}</div>
+  <div class="fs"><div><b>${hm(m.daily)}</b><span>Hoy</span></div><div><b>${hm(m.weekly)}</b><span>Semana</span></div><div><b>${hm(m.total)}</b><span>Total</span></div></div></div>`;
+}
+function group(){
+  const ms=members();let h=`<div class="seg" style="margin:0 0 14px"><button data-gv="friends" class="${S.gv==='friends'?'on':''}">Amigos</button><button data-gv="rank" class="${S.gv==='rank'?'on':''}">Ranking</button><button data-gv="chat" class="${S.gv==='chat'?'on':''}">Chat</button></div>`;
+  if(!S.nick)h+=`<div class="card" style="margin-bottom:14px;text-align:center">Elige un nombre para que tus amigos te vean.<div class="ctl"><button class="mini" data-open="1">Elegir nombre</button></div></div>`;
+  if(!fb.ok)h+=`<div class="hint" style="margin-bottom:10px">Sin conexión: la comunidad no está disponible, pero tu cronómetro funciona igual.</div>`;
+  if(S.gv==='chat')return h+chatView();
+  if(S.gv==='friends'){
+    const by=(a,k)=>a.sort((x,y)=>y[k]-x[k]),act=by(ms.filter(m=>m.act),'daily'),onl=by(ms.filter(m=>m.on&&!m.act),'daily'),off=by(ms.filter(m=>!m.on),'seen');
+    const sec=(t,a)=>a.length?`<div class="gh">${t} (${a.length})</div>`+a.map(friend).join(''):'';
+    h+=sec('Estudiando ahora',act)+sec('En línea',onl)+sec('Desconectados',off);
+    if(ms.filter(m=>!m.me).length===0)h+=`<div class="empty">Aún no hay amigos aquí.<br>Comparte el enlace de la app: aparecerán en cuanto pongan su nombre.</div>`;
+    return h;
+  }
+  const tabs=[['daily','Hoy'],['weekly','Semana'],['total','Total']];ms.sort((a,b)=>b[S.rank]-a[S.rank]);
+  h+=`<div class="seg" style="margin:0 0 14px">${tabs.map(([k,l])=>`<button data-rank="${k}" class="${S.rank===k?'on':''}">${l}</button>`).join('')}</div>`;
+  h+=ms.length?`<div class="list">${ms.map((m,i)=>`<div class="m ${m.me?'me1':''}"><div class="pos">${['🥇','🥈','🥉'][i]||i+1}</div>
+  <div class="av ${m.on?'on':''}" style="background:${m.color}">${esc(m.nick[0].toUpperCase())}</div>
+  <div class="n"><b>${esc(m.nick)}${m.me?' (tú)':''}</b><small class="${m.act?'live':''}">${m.act?'Estudiando '+esc(m.act):m.on?'En línea':'Visto '+ago(m.seen)}</small></div><div class="t">${hm(m[S.rank])}</div></div>`).join('')}</div>`
+    :`<div class="empty">Todavía no hay nadie en el ranking.<br>Empieza a estudiar y serás el primero.</div>`;
+  return h;
+}
+function org(){
+  const i=S.sel,ts=S.tasks[i];
+  return `<div class="chips" style="margin-bottom:16px">${IDS.map(x=>`<button class="chip ${x===i?'on':''}" data-sub="${x}"><b style="background:${SUBJ[x].c}"></b>${SUBJ[x].n}</button>`).join('')}</div>
+  <div class="card"><b style="font:700 17px var(--f1)">Tareas</b>
+  ${ts.length?ts.map(t=>`<div class="tk ${t.done?'d':''}"><input type="checkbox" data-tk="${esc(t.id)}" ${t.done?'checked':''} aria-label="Completada"><span>${esc(t.text)}</span><button class="ghost" data-del="${esc(t.id)}" aria-label="Eliminar">✕</button></div>`).join(''):'<div class="empty" style="padding:18px 0 4px">Sin tareas. Añade la primera abajo.</div>'}
+  <div class="add"><input type="text" id="nt" maxlength="200" placeholder="Nueva tarea"><button class="mini" id="addt">Añadir</button></div></div>
+  <h2>Apuntes</h2><div class="card"><div class="sy">${SYM.map(s=>`<button data-sym="${s}">${s}</button>`).join('')}</div>
+  <textarea id="notes" placeholder="Escribe aquí tus fórmulas y resúmenes…">${esc(S.notes[i])}</textarea></div>`;
+}
+function render(){
+  setAcc();
+  document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===S.view));
+  $('#meav').textContent=S.nick?S.nick[0].toUpperCase():'?';$('#meav').style.background=S.color;$('#mename').textContent=S.nick||'Tu nombre';
+  badge();syncListeners();
+  $('#main').innerHTML=S.view==='study'?study():S.view==='stats'?statsView():S.view==='group'?group():org();
+  if(S.view==='study')paint();
+  if(S.view==='group'&&S.gv==='chat'){const ci=$('#ci'),cl=$('#cl');if(ci)ci.value=draft;if(cl)cl.scrollTop=cl.scrollHeight}
+}
+
+/* ---------- Chat (Realtime Database; solo se escucha con el chat abierto; últimos 50 mensajes) ---------- */
+let draft='',lastMsg=0,chatRef=null;
+const hhmm=t=>{const d=new Date(t||Date.now());return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')};
+function bubble(m){
+  const me=m.uid===fb.uid,col=COLORS.includes(m.color)?m.color:COLORS[0];
+  return `<div class="msg ${me?'mine':''}" id="m_${esc(m.k)}"><div class="av" style="background:${col}">${esc(String(m.nick||'?')[0].toUpperCase())}</div>
+  <div class="bb"><small>${me?'Tú':esc(m.nick)} ${hhmm(m.ts)}${me?`<button class="lk" data-delm="${esc(m.k)}">borrar</button>`:''}</small><p>${esc(m.text)}</p></div></div>`;
+}
+function chatView(){
+  const ms=fb.msgs||[];
+  return `<div class="card chat"><div class="cl" id="cl">${ms.length?ms.map(bubble).join(''):'<div class="empty" id="ce">Aún no hay mensajes. Escribe el primero.</div>'}</div>
+  <div class="cin"><input type="text" id="ci" maxlength="300" placeholder="Escribe un mensaje" autocomplete="off"><button class="mini" id="cs">Enviar</button></div></div>
+  <div class="hint">Lo ven todos los usuarios de la app. Se muestran los últimos 50 mensajes.</div>`;
+}
+function chatAdd(m){
+  const l=document.getElementById('cl');if(!l||S.view!=='group'||S.gv!=='chat')return;
+  const near=l.scrollHeight-l.scrollTop-l.clientHeight<80||m.uid===fb.uid;
+  document.getElementById('ce')?.remove();l.insertAdjacentHTML('beforeend',bubble(m));
+  while(l.children.length>80)l.firstChild.remove();
+  if(near)l.scrollTop=l.scrollHeight;
+}
+function listenChat(on){
+  if(!fb.ok)return;
+  if(on&&!chatRef){
+    fb.msgs=[];chatRef=fb.rt.ref('chat/general').limitToLast(50);
+    chatRef.on('child_added',x=>{const m={k:x.key,...x.val()};fb.msgs.push(m);if(fb.msgs.length>80)fb.msgs.shift();chatAdd(m)},e=>{console.warn('Chat:',e);chatRef=null});
+    chatRef.on('child_removed',x=>{fb.msgs=fb.msgs.filter(m=>m.k!==x.key);document.getElementById('m_'+x.key)?.remove()});
+  }else if(!on&&chatRef){chatRef.off();chatRef=null}
+}
+/* Limpieza sin servidor: una vez por visita se borran (máx. 50 de cada) los mensajes de más de 7 días y las presencias de más de 30. */
+let pruned=false;
+function prune(){
+  if(!fb.ok||pruned)return;pruned=true;
+  const run=(path,key,ms)=>fb.rt.ref(path).orderByChild(key).endAt(sNow()-ms-36e5).limitToFirst(50).once('value')
+    .then(sn=>Promise.all(Object.keys(sn.val()||{}).filter(k=>path!=='presence'||k!==fb.uid).map(k=>fb.rt.ref(path+'/'+k).remove().catch(()=>{}))))
+    .catch(e=>console.warn('Limpieza:',e.message));
+  run('chat/general','ts',7*864e5);run('presence','lastSeen',30*864e5);
+}
+function syncListeners(){const g=S.view==='group'&&!document.hidden;listenUsers(g&&S.gv!=='chat');listenChat(g&&S.gv==='chat')}
+function sendMsg(){
+  const i=$('#ci'),t=(i?i.value:'').trim().slice(0,300);
+  if(!t)return;if(!S.nick)return settings();if(!fb.ok)return toast('Sin conexión con la comunidad');
+  if(Date.now()-lastMsg<1500)return toast('Espera un segundo antes de enviar otro mensaje');
+  lastMsg=Date.now();
+  fb.rt.ref('chat/general').push({uid:fb.uid,nick:S.nick,color:S.color,text:t,ts:firebase.database.ServerValue.TIMESTAMP}).catch(()=>toast('No se pudo enviar. Revisa las reglas de Realtime Database.'));
+  i.value='';draft='';
+}
+
+/* ---------- Ajustes ---------- */
+function settings(){
+  const d=$('#dlg');
+  d.innerHTML=`<h2 style="margin-top:0">Perfil y ajustes</h2>
+  <label for="pn">Nombre en el ranking</label><input type="text" id="pn" maxlength="20" value="${esc(S.nick)}" placeholder="Tu nombre">
+  <label>Color</label><div class="cols">${COLORS.map(c=>`<button type="button" data-col="${c}" class="${c===S.color?'on':''}" style="background:${c}" aria-label="Color ${c}"></button>`).join('')}</div>
+  <label for="gd">Meta diaria (horas)</label><input type="number" id="gd" min="1" max="24" value="${S.goalD}">
+  <label for="gw">Meta semanal (horas)</label><input type="number" id="gw" min="1" max="168" value="${S.goalW}">
+  <div class="acts"><button class="mini" id="ok">Guardar</button><button class="ghost" id="ex">Exportar copia</button><label class="ghost" style="margin:0;cursor:pointer">Importar<input type="file" id="im" accept=".json" hidden></label><button class="ghost" id="cl">Cerrar</button></div>`;
+  d.showModal();
+  let col=S.color;
+  d.onclick=e=>{const c=e.target.closest('[data-col]');if(c){col=c.dataset.col;d.querySelectorAll('[data-col]').forEach(b=>b.classList.toggle('on',b===c))}};
+  $('#cl').onclick=()=>d.close();
+  $('#ok').onclick=()=>{S.nick=$('#pn').value.trim().slice(0,20);S.color=col;S.goalD=Math.min(24,num($('#gd').value)||3);S.goalW=Math.min(168,num($('#gw').value)||15);save(true);d.close();render();sync(true);toast('Guardado')};
+  $('#ex').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({...S,run:null},null,1)],{type:'application/json'}));a.download=`mathstudy_${dk()}.json`;a.click();URL.revokeObjectURL(a.href)};
+  $('#im').onchange=e=>{const f=e.target.files[0];if(!f||f.size>2e6)return toast('Archivo no válido');const r=new FileReader();
+    r.onload=()=>{try{const o=JSON.parse(r.result);if(!o||typeof o!=='object'||!(o.tot||o.subjects))throw 0;const v=S.view;stop();S=clean(o);S.view=v;save(true);d.close();render();sync(true);toast('Datos importados')}catch(x){toast('El archivo no es una copia válida')}};r.readAsText(f)};
+}
+
+/* ---------- Eventos ---------- */
+document.addEventListener('click',e=>{
+  const t=e.target,q=s=>t.closest(s);let x;
+  if((x=q('#nav button')))return S.view=x.dataset.v,render();
+  if((x=q('[data-sub]'))){if(S.run)return toast('Pausa el cronómetro para cambiar de asignatura');S.sel=x.dataset.sub;save();return render()}
+  if(q('#go'))return toggle();
+  if(q('#fin'))return finish();
+  if((x=q('[data-mode]'))){if(S.run)return toast('Pausa el cronómetro para cambiar de modo');S.mode=x.dataset.mode;S.cur=0;S.phase=0;S.rem=POMO[0];save();return render()}
+  if((x=q('[data-range]')))return S.range=+x.dataset.range,save(),render();
+  if((x=q('[data-gv]')))return S.gv=x.dataset.gv,render();
+  if(q('#cs'))return sendMsg();
+  if((x=q('[data-delm]')))return fb.ok&&fb.rt.ref('chat/general/'+x.dataset.delm).remove().catch(()=>toast('No se pudo borrar'));
+  if((x=q('[data-rank]')))return S.rank=x.dataset.rank,render();
+  if(q('[data-open]')||q('#me'))return settings();
+  if(q('#thm')){S.theme=S.theme==='dark'?'light':'dark';save(true);return render()}
+  if(q('#addt')){const i=$('#nt'),v=i.value.trim();if(v){S.tasks[S.sel].push({id:'t'+Date.now(),text:v.slice(0,200),done:false});save(true);render()}return}
+  if((x=q('[data-del]'))){S.tasks[S.sel]=S.tasks[S.sel].filter(a=>a.id!==x.dataset.del);save(true);return render()}
+  if((x=q('[data-sym]'))){const a=$('#notes'),p=a.selectionStart;a.setRangeText(x.dataset.sym,p,a.selectionEnd,'end');a.focus();S.notes[S.sel]=a.value;save()}
+});
+document.addEventListener('change',e=>{const g=e.target.id;if(g==='qd'||g==='qw'){const mx=g==='qd'?24:168,v=Math.min(mx,Math.max(1,num(e.target.value)||1));g==='qd'?S.goalD=v:S.goalW=v;save(true);return render()}
+  const c=e.target.closest('[data-tk]');if(c){const t=S.tasks[S.sel].find(a=>a.id===c.dataset.tk);if(t)t.done=c.checked;save(true);render()}});
+document.addEventListener('input',e=>{if(e.target.id==='ci')draft=e.target.value;if(e.target.id==='notes'){S.notes[S.sel]=e.target.value.slice(0,20000);save()}});
+document.addEventListener('keydown',e=>{if(e.key!=='Enter')return;if(e.target.id==='nt')$('#addt').click();if(e.target.id==='ci')sendMsg()});
+document.addEventListener('visibilitychange',()=>{if(S.run){last=Date.now()-Math.min(Date.now()-last,864e5)}});
+
+setInterval(()=>{if(S.view==='group'&&S.gv!=='chat'&&!S.run)render()},15000); // refresca 'hace X min' aunque tu cronómetro esté parado
+setInterval(()=>document.querySelectorAll('.el[data-s]').forEach(e=>e.textContent=clock((sNow()-e.dataset.s)/1000)),1000);
+load();render();initFb();
+</script>
+</body>
+</html>
