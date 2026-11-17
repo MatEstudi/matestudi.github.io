@@ -152,13 +152,8 @@ h2{font:700 18px var(--f1);margin:26px 0 12px}
 .m small{color:var(--mut)}.m .t{font:700 16px var(--f1);text-align:right}.pos{width:26px;text-align:center;font:700 15px var(--f1);color:var(--mut)}
 .live{color:#16a34a}
 .empty{text-align:center;color:var(--mut);padding:34px 10px}
-.tk{display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
-.tk:last-child{border:0}.tk input[type=checkbox]{accent-color:var(--acc);width:18px;height:18px}
-.tk.d span{text-decoration:line-through;color:var(--mut)}.tk span{flex:1}
 .add{display:flex;gap:8px;margin-top:12px}
 input[type=text],input[type=number],textarea{width:100%;padding:11px 14px;border-radius:14px;border:1px solid var(--line);background:var(--bg)}
-textarea{min-height:170px;resize:vertical;line-height:1.6}
-.sy{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}.sy button{min-width:34px;padding:5px 8px;border-radius:9px;border:1px solid var(--line);background:var(--bg)}
 .mini{padding:11px 18px;border-radius:14px;background:var(--acc);color:#fff;font-weight:600}
 dialog{border:0;border-radius:var(--r);padding:24px;width:min(420px,92vw);background:var(--card);color:var(--ink);box-shadow:0 30px 80px rgba(0,0,0,.35)}
 dialog::backdrop{background:rgba(8,10,24,.55);backdrop-filter:blur(3px)}
@@ -198,6 +193,53 @@ nav button{font-size:14px}
 @media(max-width:480px){.row{grid-template-columns:1fr 1fr}.row .st:first-child{grid-column:span 2}.me span{display:none}.me{padding:4px}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 .vt{width:15px;height:15px;vertical-align:-2px;margin-left:4px;flex:none}
+
+/* ---------- Tren de Anàlisi ---------- */
+.train{padding:16px 14px 14px;margin-bottom:10px;overflow-x:auto;overflow-y:hidden;border-color:#f43f5e55}
+.train h3{font:700 13px var(--f1);color:var(--mut);display:flex;justify-content:space-between;gap:8px}
+.trk{display:flex;align-items:flex-end;width:max-content;min-width:100%;padding:58px 4px 10px;position:relative}
+.trk::before{content:'';position:absolute;left:0;right:0;bottom:8px;height:3px;background:var(--mut);opacity:.7;border-radius:2px}
+.trk::after{content:'';position:absolute;left:0;right:0;bottom:0;height:8px;background:repeating-linear-gradient(90deg,#92400e 0 9px,transparent 9px 24px);opacity:.55;animation:gnd .45s linear infinite}
+@keyframes gnd{to{background-position-x:-24px}}
+.car{position:relative;width:112px;height:128px;flex:none;margin-right:10px;animation:bob .5s ease-in-out infinite alternate;animation-delay:calc(var(--i,0)*-.17s)}
+.car:first-child{margin-left:auto}
+@keyframes bob{to{transform:translateY(-1.5px)}}
+.car:not(.loco)::after{content:'';position:absolute;right:-10px;top:96px;width:10px;height:5px;background:#475569;border-radius:2px}
+.cb{position:absolute;left:0;right:0;top:0;height:110px;background:#f43f5e;border-radius:10px 10px 4px 4px;box-shadow:inset 0 -8px 0 rgba(0,0,0,.16)}
+.cb::before,.cab::before{content:'';position:absolute;left:-3px;right:-3px;top:-5px;height:9px;border-radius:6px;background:#9f1239}
+.cb::after,.cab::after{content:'';position:absolute;left:0;right:0;bottom:18px;height:4px;background:rgba(255,255,255,.45)}
+.cw{position:absolute;left:8px;right:8px;top:14px;bottom:24px;background:rgba(255,255,255,.18);border:2px solid rgba(255,255,255,.55);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;color:#fff;text-align:center;z-index:1}
+.cw .av{width:32px;height:32px;font-size:14px;border:2px solid #fff;overflow:visible}
+.cw .av::after{display:none}
+.cw b{font:700 12px var(--f1);max-width:86px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center}
+.cw .vt{width:12px;height:12px}
+.cw .el{color:#fff;font-size:12px;line-height:1.2}
+.cw small{font-size:10px;line-height:1.2;opacity:.92}
+.ch{position:absolute;left:4px;right:4px;top:108px;height:8px;background:#1e293b;border-radius:3px}
+.wl{position:absolute;bottom:0;width:24px;height:24px;animation:spin .9s linear infinite}
+.w1{left:12px}.w2{right:12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loco{width:210px}
+.loco .ch{right:16px}
+.cab{position:absolute;left:0;top:0;width:90px;height:110px;background:#be123c;border-radius:8px 4px 4px 4px;box-shadow:inset 0 -8px 0 rgba(0,0,0,.18)}
+.cab .cw{top:20px;bottom:14px}
+.boiler{position:absolute;left:86px;top:40px;width:104px;height:62px;border-radius:4px 30px 30px 4px;background:repeating-linear-gradient(90deg,transparent 0 30px,rgba(0,0,0,.22) 30px 33px),linear-gradient(#e11d48,#9f1239);box-shadow:inset 0 -6px 0 rgba(0,0,0,.18)}
+.chim{position:absolute;left:150px;top:16px;width:18px;height:28px;background:#1e293b}
+.chim::before{content:'';position:absolute;left:-4px;right:-4px;top:-5px;height:7px;border-radius:3px;background:#1e293b}
+.dome{position:absolute;left:108px;top:28px;width:22px;height:16px;background:#fbbf24;border-radius:11px 11px 0 0}
+.lamp{position:absolute;left:188px;top:56px;width:10px;height:14px;background:#fde047;border-radius:0 8px 8px 0;box-shadow:0 0 12px #fde047}
+.catch{position:absolute;left:180px;top:100px;width:30px;height:24px;background:#1e293b;clip-path:polygon(0 0,100% 100%,0 100%)}
+.loco .wl{width:34px;height:34px}
+.loco .w1{left:14px;right:auto}.loco .w2{left:64px;right:auto}.loco .w3{left:136px;right:auto;width:26px;height:26px}
+.rod{position:absolute;left:31px;top:109px;width:50px;height:4px;background:#cbd5e1;border-radius:2px;animation:rod .9s linear infinite;z-index:2}
+@keyframes rod{0%{transform:translate(0,-11px)}25%{transform:translate(11px,0)}50%{transform:translate(0,11px)}75%{transform:translate(-11px,0)}}
+.smk{position:absolute;left:159px;top:6px;width:0;height:0}
+.pf{position:absolute;left:-7px;top:-7px;width:14px;height:14px;border-radius:50%;background:var(--mut);opacity:0;animation:puff 2.4s ease-out infinite}
+.pf:nth-child(2){animation-delay:.8s}.pf:nth-child(3){animation-delay:1.6s}
+@keyframes puff{0%{transform:translate(0,0) scale(.5);opacity:.6}100%{transform:translate(-34px,-40px) scale(1.9);opacity:0}}
+.hat{position:absolute;left:50%;top:-16px;width:30px;height:21px;transform:translateX(-50%) rotate(-6deg);z-index:3;pointer-events:none;filter:drop-shadow(0 1px 1px rgba(0,0,0,.3))}
+.seat{width:32px;height:32px;border-radius:50%;border:2px dashed rgba(255,255,255,.7);display:grid;place-items:center;font-size:14px}
+@media(prefers-reduced-motion:reduce){.train *,.trk::after{animation:none!important}}
 </style>
 </head>
 <body>
@@ -213,7 +255,6 @@ nav button{font-size:14px}
     <button data-v="study">Estudiar</button>
     <button data-v="stats">Estadísticas</button>
     <button data-v="group">Comunidad</button>
-    <button data-v="org">Apuntes</button>
   </nav>
   <main id="main"></main>
 </div>
@@ -232,7 +273,7 @@ const IDS=Object.keys(SUBJ),COLORS=['#6366f1','#10b981','#f43f5e','#f59e0b','#8b
 const SYM=['∀','∃','∈','⊂','∪','∩','ℝ','ℕ','ℤ','∑','∫','∞','⇒','⇔','≠','≤','≥','λ','ε','δ'];
 const fbCfg={apiKey:"AIzaSyDtBjHqSx7QyJZXlR7EsYAPmTadIu2hmnU",authDomain:"math-study-df821.firebaseapp.com",databaseURL:"https://math-study-df821-default-rtdb.europe-west1.firebasedatabase.app",projectId:"math-study-df821",storageBucket:"math-study-df821.firebasestorage.app",messagingSenderId:"278188701491",appId:"1:278188701491:web:703b085ecc312d0f9ef046"};
 const blank=()=>({theme:'light',view:'study',sel:'fonaments',mode:'free',rank:'daily',gv:'friends',range:7,nick:'',color:COLORS[0],goalD:3,goalW:15,
-  tot:{fonaments:0,algebra:0,analisi:0},hist:{},sess:[],tasks:{fonaments:[],algebra:[],analisi:[]},notes:{fonaments:'',algebra:'',analisi:''},
+  tot:{fonaments:0,algebra:0,analisi:0},hist:{},sess:[],
   run:null,cur:0,phase:0,rem:POMO[0]});
 let S=blank(),last=0,loop=null,tick5=0,saveT=0;
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -262,9 +303,6 @@ function clean(p){
   b.sel=IDS.includes(o.sel)?o.sel:'fonaments';b.range=o.range===30?30:7;b.mode=o.mode==='pomo'?'pomo':'free';
   IDS.forEach(i=>{
     b.tot[i]=num(o.tot?.[i]??o.subjects?.[i]?.totalSeconds);
-    b.notes[i]=String(o.notes?.[i]??o.subjects?.[i]?.notes??'').slice(0,20000);
-    const ts=o.tasks?.[i]??o.subjects?.[i]?.tasks;
-    b.tasks[i]=Array.isArray(ts)?ts.slice(0,100).map(t=>({id:String(t.id||Math.random()),text:String(t.text||'').slice(0,200),done:!!(t.done??t.completed)})):[];
   });
   const h=o.hist??o.dailyHistory;
   if(h&&typeof h==='object')Object.keys(h).filter(k=>/^\d{4}-\d{2}-\d{2}$/.test(k)).forEach(k=>{
@@ -475,6 +513,25 @@ function friend(m){
   <div class="n"><b>${esc(m.nick)}${isVer(m.id)?TICK:''}${m.me?' (tú)':''}</b>${st}</div>${m.act&&m.since?`<div class="el" data-s="${m.since}" title="Tiempo en esta sesión">${clock((sNow()-m.since)/1000)}</div>`:''}</div>
   <div class="fs"><div><b>${hm(m.daily)}</b><span>Hoy</span></div><div><b>${hm(m.weekly)}</b><span>Semana</span></div><div><b>${hm(m.total)}</b><span>Total</span></div></div></div>`;
 }
+
+/* ---------- Tren: quien estudia Anàlisi va en un vagón; el top 1 semanal conduce (a la derecha) y lleva sombrero.
+   Los vagones se ordenan por tiempo total: más tiempo, más cerca de la locomotora. ---------- */
+const HAT='<svg class="hat" viewBox="0 0 34 24" aria-label="Sombrero de maquinista"><path d="M5 15C5 6 11 2 17 2s12 4 12 13z" fill="#1e293b"/><rect x="4" y="12" width="26" height="4" rx="1.5" fill="#fbbf24"/><path d="M3 16h28c0 4-4 6-14 6S3 20 3 16z" fill="#0f172a"/><circle cx="17" cy="8" r="2.4" fill="#fbbf24"/></svg>';
+const WHEEL=c=>`<svg class="wl ${c}" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#1e293b" stroke="#64748b" stroke-width="1.5"/><path d="M12 2v20M2 12h20" stroke="#94a3b8" stroke-width="1.4"/><circle cx="12" cy="12" r="3" fill="#94a3b8"/><circle cx="12" cy="4.5" r="1.8" fill="#fbbf24"/></svg>`;
+let trainR=0;
+function fixTrain(){const t=document.querySelector('.train');if(t)t.scrollLeft=Math.max(0,t.scrollWidth-t.clientWidth-trainR)}
+document.addEventListener('scroll',e=>{const t=e.target;if(t&&t.classList&&t.classList.contains('train'))trainR=Math.max(0,t.scrollWidth-t.clientWidth-t.scrollLeft)},true);
+function trainBlock(ms,all){
+  const AN=SUBJ.analisi.n,top=[...all].sort((a,b)=>b.weekly-a.weekly)[0],topId=top&&top.weekly>0?top.id:null;
+  const pas=ms.filter(m=>m.act===AN);if(!pas.length)return '';
+  const drv=pas.find(m=>m.id===topId),rest=pas.filter(m=>m!==drv).sort((a,b)=>a.total-b.total);
+  const cell=(m,d,x)=>`<div class="av ${m.on?'on':''}" style="background:${m.color}">${esc(m.nick[0].toUpperCase())}${d?HAT:''}</div>
+    <b>${esc(m.nick)}${isVer(m.id)?TICK:''}${m.me?' (tú)':''}</b>${m.since?`<div class="el" data-s="${m.since}">${clock((sNow()-m.since)/1000)}</div>`:''}<small>${x}</small>`;
+  const wagons=rest.map((m,k)=>`<div class="car" style="--i:${k}"><div class="cb"><div class="cw">${cell(m,false,'Total '+hm(m.total))}</div></div><i class="ch"></i>${WHEEL('w1')}${WHEEL('w2')}</div>`).join('');
+  const cab=drv?cell(drv,true,'Maquinista · top 1'):'';
+  const loco=`<div class="car loco" style="--i:${rest.length}"><div class="smk"><i class="pf"></i><i class="pf"></i><i class="pf"></i></div><div class="cab"><div class="cw">${cab}</div></div><div class="boiler"></div><i class="chim"></i><i class="dome"></i><i class="lamp"></i><i class="catch"></i><i class="ch"></i><i class="rod"></i>${WHEEL('w1')}${WHEEL('w2')}${WHEEL('w3')}</div>`;
+  return `<div class="card train"><h3><span>🚆 Tren de ${esc(AN)}</span><span>${pas.length} a bordo</span></h3><div class="trk">${wagons}${loco}</div><div class="hint">Más tiempo total, más cerca de la locomotora. Conduce el top 1 semanal.</div></div>`;
+}
 function group(){
   const ms=members();let h=`<div class="seg" style="margin:0 0 14px"><button data-gv="friends" class="${S.gv==='friends'?'on':''}">Amigos</button><button data-gv="rank" class="${S.gv==='rank'?'on':''}">Ranking</button><button data-gv="chat" class="${S.gv==='chat'?'on':''}">Chat</button></div>`;
   if(!S.nick)h+=`<div class="card" style="margin-bottom:14px;text-align:center">Elige un nombre para que tus amigos te vean.<div class="ctl"><button class="mini" data-open="1">Elegir nombre</button></div></div>`;
@@ -482,8 +539,8 @@ function group(){
   if(S.gv==='chat')return h+chatView();
   if(S.gv==='friends'){
     const by=(a,k)=>a.sort((x,y)=>y[k]-x[k]),act=by(ms.filter(m=>m.act),'daily'),onl=by(ms.filter(m=>m.on&&!m.act),'daily'),off=by(ms.filter(m=>!m.on),'seen');
-    const sec=(t,a)=>a.length?`<div class="gh">${t} (${a.length})</div>`+a.map(friend).join(''):'';
-    h+=sec('Estudiando ahora',act)+sec('En línea',onl)+sec('Desconectados',off);
+    const sec=(t,a,x='')=>a.length?`<div class="gh">${t} (${a.length})</div>`+x+a.filter(m=>!(m.act===SUBJ.analisi.n&&x)).map(friend).join(''):'';
+    h+=sec('Estudiando ahora',act,trainBlock(act,ms))+sec('En línea',onl)+sec('Desconectados',off);
     if(ms.filter(m=>!m.me).length===0)h+=`<div class="empty">Aún no hay amigos aquí.<br>Comparte el enlace de la app: aparecerán en cuanto pongan su nombre.</div>`;
     return h;
   }
@@ -495,23 +552,15 @@ function group(){
     :`<div class="empty">Todavía no hay nadie en el ranking.<br>Empieza a estudiar y serás el primero.</div>`;
   return h;
 }
-function org(){
-  const i=S.sel,ts=S.tasks[i];
-  return `<div class="chips" style="margin-bottom:16px">${IDS.map(x=>`<button class="chip ${x===i?'on':''}" data-sub="${x}"><b style="background:${SUBJ[x].c}"></b>${SUBJ[x].n}</button>`).join('')}</div>
-  <div class="card"><b style="font:700 17px var(--f1)">Tareas</b>
-  ${ts.length?ts.map(t=>`<div class="tk ${t.done?'d':''}"><input type="checkbox" data-tk="${esc(t.id)}" ${t.done?'checked':''} aria-label="Completada"><span>${esc(t.text)}</span><button class="ghost" data-del="${esc(t.id)}" aria-label="Eliminar">✕</button></div>`).join(''):'<div class="empty" style="padding:18px 0 4px">Sin tareas. Añade la primera abajo.</div>'}
-  <div class="add"><input type="text" id="nt" maxlength="200" placeholder="Nueva tarea"><button class="mini" id="addt">Añadir</button></div></div>
-  <h2>Apuntes</h2><div class="card"><div class="sy">${SYM.map(s=>`<button data-sym="${s}">${s}</button>`).join('')}</div>
-  <textarea id="notes" placeholder="Escribe aquí tus fórmulas y resúmenes…">${esc(S.notes[i])}</textarea></div>`;
-}
 function hdr(){const e=$('#mename');if(e)e.innerHTML=esc(S.nick||'Tu nombre')+(S.nick&&isVer(fb.uid)?TICK:'')}
 function render(){
   setAcc();
   document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===S.view));
   $('#meav').textContent=S.nick?S.nick[0].toUpperCase():'?';$('#meav').style.background=S.color;hdr();
   badge();syncListeners();
-  $('#main').innerHTML=S.view==='study'?study():S.view==='stats'?statsView():S.view==='group'?group():org();
+  $('#main').innerHTML=S.view==='study'?study():S.view==='stats'?statsView():group();
   if(S.view==='study')paint();
+  if(S.view==='group'&&S.gv==='friends')fixTrain();
   if(S.view==='group'&&S.gv==='chat'){const ci=$('#ci'),cl=$('#cl');if(ci)ci.value=draft;if(cl)cl.scrollTop=cl.scrollHeight}
 }
 
@@ -609,14 +658,11 @@ document.addEventListener('click',e=>{
   if((x=q('[data-rank]')))return S.rank=x.dataset.rank,render();
   if(q('[data-open]')||q('#me'))return settings();
   if(q('#thm')){S.theme=S.theme==='dark'?'light':'dark';save(true);return render()}
-  if(q('#addt')){const i=$('#nt'),v=i.value.trim();if(v){S.tasks[S.sel].push({id:'t'+Date.now(),text:v.slice(0,200),done:false});save(true);render()}return}
-  if((x=q('[data-del]'))){S.tasks[S.sel]=S.tasks[S.sel].filter(a=>a.id!==x.dataset.del);save(true);return render()}
-  if((x=q('[data-sym]'))){const a=$('#notes'),p=a.selectionStart;a.setRangeText(x.dataset.sym,p,a.selectionEnd,'end');a.focus();S.notes[S.sel]=a.value;save()}
 });
 document.addEventListener('change',e=>{const g=e.target.id;if(g==='qd'||g==='qw'){const mx=g==='qd'?24:168,v=Math.min(mx,Math.max(1,num(e.target.value)||1));g==='qd'?S.goalD=v:S.goalW=v;save(true);return render()}
-  const c=e.target.closest('[data-tk]');if(c){const t=S.tasks[S.sel].find(a=>a.id===c.dataset.tk);if(t)t.done=c.checked;save(true);render()}});
-document.addEventListener('input',e=>{if(e.target.id==='ci')draft=e.target.value;if(e.target.id==='notes'){S.notes[S.sel]=e.target.value.slice(0,20000);save()}});
-document.addEventListener('keydown',e=>{if(e.key!=='Enter')return;if(e.target.id==='nt')$('#addt').click();if(e.target.id==='ci')sendMsg()});
+  });
+document.addEventListener('input',e=>{if(e.target.id==='ci')draft=e.target.value;});
+document.addEventListener('keydown',e=>{if(e.key!=='Enter')return;if(e.target.id==='ci')sendMsg()});
 document.addEventListener('visibilitychange',()=>{if(S.run){last=Date.now()-Math.min(Date.now()-last,864e5)}});
 
 setInterval(()=>{if(S.view==='group'&&S.gv!=='chat'&&!S.run)render()},15000); // refresca 'hace X min' aunque tu cronómetro esté parado
