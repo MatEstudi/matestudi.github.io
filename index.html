@@ -194,6 +194,20 @@ nav button{font-size:14px}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 .vt{width:15px;height:15px;vertical-align:-2px;margin-left:4px;flex:none}
 
+/* ---------- Rachas (fuego) ---------- */
+.fl{width:1em;height:1em;vertical-align:-.15em;flex:none;display:inline-block}
+.fl.off{filter:grayscale(1);opacity:.45}
+.stk{display:inline-flex;align-items:center;gap:3px;padding:3px 9px 3px 6px;border-radius:99px;background:rgba(249,115,22,.14);color:#ea580c;font:700 13px var(--f1);flex:none;font-variant-numeric:tabular-nums}
+:root[data-t=dark] .stk{color:#fb923c}
+.fire{position:relative;overflow:hidden}
+.fire>*{position:relative;z-index:1}
+.fire>.bgf{position:absolute;z-index:0;right:-14px;top:50%;width:auto;height:170%;aspect-ratio:1;transform:translateY(-50%) rotate(8deg);opacity:var(--fo,.12);pointer-events:none}
+.stn{color:var(--mut);font-size:12px;margin-top:6px;line-height:1.35}
+.fire.fb{border-color:color-mix(in srgb,#f97316 calc(var(--fl,0)*100%),var(--line));box-shadow:0 0 0 calc(var(--fl,0)*1.5px) color-mix(in srgb,#f97316 calc(var(--fl,0)*100%),transparent),0 0 calc(var(--fl,0)*22px) calc(var(--fl,0)*2px) rgba(249,115,22,calc(.12 + var(--fl,0)*.4))}
+.fire.max{animation:flick 1.6s ease-in-out infinite alternate}
+@keyframes flick{to{box-shadow:0 0 0 1.5px #f97316,0 0 30px 5px rgba(251,146,60,.7)}}
+@media(prefers-reduced-motion:reduce){.fire.max{animation:none}}
+
 /* ---------- Tren de Anàlisi ---------- */
 .train{padding:16px 14px 14px;margin-bottom:10px;overflow-x:auto;overflow-y:hidden;border-color:#f43f5e55}
 .train h3{font:700 13px var(--f1);color:var(--mut);display:flex;justify-content:space-between;gap:8px}
@@ -243,6 +257,7 @@ nav button{font-size:14px}
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="flame" viewBox="0 0 24 24"><path fill="#f97316" d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67z"/><path fill="#fde047" d="M11.71 19c-1.78 0-3.22-1.4-3.22-3.14 0-1.62 1.05-2.76 2.81-3.12 1.77-.36 3.6-1.21 4.62-2.58.39 1.29.59 2.65.59 4.04 0 2.65-2.15 4.8-4.8 4.8z"/></symbol></svg>
 <div class="wrap">
   <header>
     <div class="logo"><i>∑</i>MathStudy</div>
@@ -347,7 +362,32 @@ function stats(){
   Object.entries(S.hist).forEach(([d,v])=>{const[y,mo,da]=d.split('-').map(Number);if(new Date(y,mo-1,da)>=m)w+=v.t});
   return{total:IDS.reduce((a,i)=>a+S.tot[i],0),today:day(k),todayKey:k,week:w,weekKey:dk(m)};
 }
-function streak(){let n=0;const d=new Date();if(!day(dk(d)))d.setDate(d.getDate()-1);while(day(dk(d))>0){n++;d.setDate(d.getDate()-1)}return n}
+/* Racha: un día suma si se estudia al menos 1 hora (QUAL). Si hoy aún no llegas a 1 h, la racha no se pierde: cuenta hasta ayer. */
+const QUAL=3600,dias=n=>n+(n===1?' día':' días');
+function streakCur(){
+  let n=0;const d=new Date();if(day(dk(d))<QUAL)d.setDate(d.getDate()-1);
+  const end=dk(d);while(day(dk(d))>=QUAL){n++;d.setDate(d.getDate()-1)}
+  return{n,end:n?end:''};
+}
+function streakBest(cur){
+  let best=0,run=0,prev=null;
+  Object.keys(S.hist).filter(k=>S.hist[k].t>=QUAL).sort().forEach(k=>{
+    const[y,m,d]=k.split('-').map(Number),t=Date.UTC(y,m-1,d);
+    run=prev!==null&&t-prev===864e5?run+1:1;prev=t;if(run>best)best=run});
+  return Math.max(best,cur);
+}
+/* La racha guardada de otra persona solo vale si su último día contado es hoy o ayer. */
+function liveStreak(u){
+  const y=new Date();y.setDate(y.getDate()-1);
+  return u.streakEnd===dk()||u.streakEnd===dk(y)?num(u.streak,36500):0;
+}
+const FL='<svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><use href="#flame"/></svg>';
+const fireBg=n=>n>0?'<svg class="bgf" viewBox="0 0 24 24" aria-hidden="true"><use href="#flame"/></svg>':'';
+/* Fuego: de 1 a 4 días solo una llama tenue; desde el día 5 aparece el borde brillante y crece hasta el máximo en el día 30. */
+const FIRE_MIN=5,FIRE_MAX=30;
+const fireLv=n=>n<FIRE_MIN?0:Math.min(1,.25+.75*(n-FIRE_MIN)/(FIRE_MAX-FIRE_MIN));
+const fireCls=n=>n>0?' fire'+(n>=FIRE_MIN?' fb':'')+(n>=FIRE_MAX?' max':''):'';
+const fireVar=n=>n>0?`--fo:${(n<FIRE_MIN?.08:.12+.2*fireLv(n)).toFixed(2)};--fl:${fireLv(n).toFixed(2)}`:'';
 
 /* ---------- Firebase (comunidad) ---------- */
 let fb={ok:false,db:null,rt:null,uid:'',users:{},pres:{},ver:new Set(),docOk:false},lastFs=0,lastFsSig='',lastProf='',lastPrSig='',unsubFs=null,off=0,ringPrev=0;
@@ -428,23 +468,25 @@ function sync(force,final){
   const ps=JSON.stringify([S.nick,S.color,a]);
   if(ps!==lastPrSig){lastPrSig=ps;
     fb.rt.ref('presence/'+fb.uid).update({online:true,lastSeen:firebase.database.ServerValue.TIMESTAMP,nickname:S.nick,avatarColor:S.color,active:a,since:S.run?now+off-S.cur*1000:null}).catch(()=>{})}
-  const fs=JSON.stringify([S.nick,S.color,Math.floor(st.total/60),Math.floor(st.today/60),Math.floor(st.week/60)]);
+  const sk=streakCur(),bs=streakBest(sk.n);
+  const fs=JSON.stringify([S.nick,S.color,Math.floor(st.total/60),Math.floor(st.today/60),Math.floor(st.week/60),sk.n,sk.end,bs]);
   if(fs===lastFsSig)return;
   const prof=S.nick+S.color,due=lastFs===0||final||prof!==lastProf||(!S.run&&force)||now-lastFs>=300000;
   if(!due)return;
   lastFs=now;lastFsSig=fs;lastProf=prof;
-  writeProfile({nickname:S.nick,avatarColor:S.color,totalSeconds:st.total,todaySeconds:st.today,todayDateKey:st.todayKey,weeklySeconds:st.week,weekStartKey:st.weekKey,updatedAt:now+off}).catch(()=>{});
+  writeProfile({nickname:S.nick,avatarColor:S.color,totalSeconds:st.total,todaySeconds:st.today,todayDateKey:st.todayKey,weeklySeconds:st.week,weekStartKey:st.weekKey,streak:sk.n,streakEnd:sk.end,bestStreak:bs,updatedAt:now+off}).catch(()=>{});
 }
 function members(){
   const tk=dk(),wk=dk(monday()),now=Date.now(),out=[];
   new Set([...Object.keys(fb.users),...Object.keys(fb.pres)]).forEach(id=>{
     const me=id===fb.uid,u={...fb.users[id],...fb.pres[id]};
-    if(me&&S.nick){const st=stats();Object.assign(u,{nickname:S.nick,avatarColor:S.color,totalSeconds:st.total,todaySeconds:st.today,todayDateKey:tk,weeklySeconds:st.week,weekStartKey:wk,online:fb.ok,active:S.run?SUBJ[S.run].n:null,since:S.run?now+off-S.cur*1000:null,lastSeen:now,updatedAt:now})}
+    if(me&&S.nick){const st=stats(),sk=streakCur();Object.assign(u,{streak:sk.n,streakEnd:sk.end,bestStreak:streakBest(sk.n),nickname:S.nick,avatarColor:S.color,totalSeconds:st.total,todaySeconds:st.today,todayDateKey:tk,weeklySeconds:st.week,weekStartKey:wk,online:fb.ok,active:S.run?SUBJ[S.run].n:null,since:S.run?now+off-S.cur*1000:null,lastSeen:now,updatedAt:now})}
     if(!u.nickname||!NICK_RE.test(String(u.nickname)))return;
     if(!u.online&&now-(u.updatedAt||0)>30*864e5)return;           // usuarios fantasma
     const extra=(!me&&u.online&&u.active)?Math.min(600,Math.max(0,(now+off-(Math.max(+u.updatedAt||0,+u.since||0)||now+off))/1000)):0; // frescura de datos ajenos
     out.push({id,me,nick:String(u.nickname).slice(0,20),color:COLORS.includes(u.avatarColor)?u.avatarColor:COLORS[0],on:!!u.online,act:u.online?u.active:null,since:+u.since||0,seen:+u.lastSeen||+u.updatedAt||0,
-      daily:(u.todayDateKey===tk?num(u.todaySeconds,86400):0)+extra,weekly:(u.weekStartKey===wk?num(u.weeklySeconds):0)+extra,total:num(u.totalSeconds)+extra});
+      daily:(u.todayDateKey===tk?num(u.todaySeconds,86400):0)+extra,weekly:(u.weekStartKey===wk?num(u.weeklySeconds):0)+extra,total:num(u.totalSeconds)+extra,
+      streak:liveStreak(u),best:Math.max(num(u.bestStreak,36500),liveStreak(u))});
   });return out;
 }
 function badge(){const on=members().filter(m=>m.on&&!m.me).length,b=$('#nav [data-v=group]');if(b)b.innerHTML='Comunidad'+(on?`<span class="bd">${on}</span>`:'')}
@@ -462,6 +504,10 @@ function paint(){
   $('#v-today').textContent=hm(st.today);$('#gbar').style.width=Math.min(100,st.today/g*100)+'%';
   $('#gtxt').textContent=`${Math.round(Math.min(100,st.today/g*100))}% de tu meta de ${S.goalD} h`;
   $('#v-week').textContent=hm(st.week);$('#v-sel').textContent=hm(S.tot[S.sel]);
+  const sk=streakCur(),rest=Math.ceil((QUAL-st.today)/60);
+  $('#v-streak').textContent=dias(sk.n);$('#stk-ico').classList.toggle('off',!sk.n);
+  const kc=$('#stk-card');kc.style.cssText=fireVar(sk.n);kc.className='card st fire'+(sk.n>=FIRE_MIN?' fb':'')+(sk.n>=FIRE_MAX?' max':'');
+  $('#stk-note').textContent=st.today>=QUAL?'Hoy ya suma a tu racha.':`Estudia ${rest} min más hoy para ${sk.n?'mantenerla':'empezarla'}.`;
   if(((S.view==='group'&&S.gv!=='chat')||S.view==='stats')&&tick5%10===0&&document.activeElement.tagName!=='INPUT')render();
 }
 const ringFrac=()=>S.mode==='free'?(S.cur%60)/60:1-S.rem/POMO[S.phase];
@@ -475,7 +521,7 @@ function study(){
   <div class="seg"><button data-mode="free" class="${S.mode==='free'?'on':''}">Libre</button><button data-mode="pomo" class="${S.mode==='pomo'?'on':''}">Pomodoro 50/10</button></div></div>
   <div class="row"><div class="card st"><b id="v-today"></b><span>Hoy</span><div class="bar"><i id="gbar"></i></div><div class="hint" id="gtxt" style="text-align:left;margin-top:6px"></div></div>
   <div class="card st"><b id="v-week"></b><span>Esta semana (meta ${S.goalW} h)</span></div>
-  <div class="card st"><b>${streak()} ${streak()===1?'día':'días'}</b><span>Racha seguida</span></div></div>
+  <div class="card st fire" id="stk-card"><svg class="bgf" viewBox="0 0 24 24" aria-hidden="true"><use href="#flame"/></svg><b><svg class="fl" id="stk-ico" viewBox="0 0 24 24" aria-hidden="true"><use href="#flame"/></svg> <span id="v-streak"></span></b><span>Racha (mín. 1 h al día)</span><div class="stn" id="stk-note"></div></div></div>
   <h2>Últimos 7 días</h2>${weekChart()}
   <div class="hint">${esc(SUBJ[S.sel].n)}: <b id="v-sel"></b> acumuladas</div>`;
 }
@@ -509,8 +555,9 @@ const sNow=()=>Date.now()+off;
 const ago=t=>{if(!t)return 'hace tiempo';const x=Math.max(0,(sNow()-t)/1000);if(x<60)return 'hace un momento';if(x<3600)return 'hace '+Math.floor(x/60)+' min';if(x<86400)return 'hace '+Math.floor(x/3600)+' h';return 'hace '+Math.floor(x/86400)+' d'};
 function friend(m){
   const st=m.act?`<small class="live">Estudiando ${esc(m.act)}</small>`:m.on?'<small class="live">En línea</small>':`<small>Última conexión ${ago(m.seen)}</small>`;
-  return `<div class="card fc ${m.me?'me1':''}"><div class="m0"><div class="av ${m.on?'on':''}" style="background:${m.color}">${esc(m.nick[0].toUpperCase())}</div>
-  <div class="n"><b>${esc(m.nick)}${isVer(m.id)?TICK:''}${m.me?' (tú)':''}</b>${st}</div>${m.act&&m.since?`<div class="el" data-s="${m.since}" title="Tiempo en esta sesión">${clock((sNow()-m.since)/1000)}</div>`:''}</div>
+  const sk=m.streak?`<span class="stk" title="Racha: ${dias(m.streak)} seguidos (mín. 1 h al día)">${FL}${m.streak}</span>`:'';
+  return `<div class="card fc ${m.me?'me1':''}${fireCls(m.streak)}" style="${fireVar(m.streak)}">${fireBg(m.streak)}<div class="m0"><div class="av ${m.on?'on':''}" style="background:${m.color}">${esc(m.nick[0].toUpperCase())}</div>
+  <div class="n"><b>${esc(m.nick)}${isVer(m.id)?TICK:''}${m.me?' (tú)':''}</b>${st}</div>${sk}${m.act&&m.since?`<div class="el" data-s="${m.since}" title="Tiempo en esta sesión">${clock((sNow()-m.since)/1000)}</div>`:''}</div>
   <div class="fs"><div><b>${hm(m.daily)}</b><span>Hoy</span></div><div><b>${hm(m.weekly)}</b><span>Semana</span></div><div><b>${hm(m.total)}</b><span>Total</span></div></div></div>`;
 }
 
@@ -544,11 +591,12 @@ function group(){
     if(ms.filter(m=>!m.me).length===0)h+=`<div class="empty">Aún no hay amigos aquí.<br>Comparte el enlace de la app: aparecerán en cuanto pongan su nombre.</div>`;
     return h;
   }
-  const tabs=[['daily','Hoy'],['weekly','Semana'],['total','Total']];ms.sort((a,b)=>b[S.rank]-a[S.rank]);
+  const tabs=[['daily','Hoy'],['weekly','Semana'],['total','Total'],['streak','Racha']],sr=S.rank==='streak';
+  ms.sort((a,b)=>sr?(b.streak-a.streak||b.best-a.best||b.total-a.total):b[S.rank]-a[S.rank]);
   h+=`<div class="seg" style="margin:0 0 14px">${tabs.map(([k,l])=>`<button data-rank="${k}" class="${S.rank===k?'on':''}">${l}</button>`).join('')}</div>`;
-  h+=ms.length?`<div class="list">${ms.map((m,i)=>`<div class="m ${m.me?'me1':''}"><div class="pos">${['🥇','🥈','🥉'][i]||i+1}</div>
+  h+=ms.length?`<div class="list">${ms.map((m,i)=>`<div class="m ${m.me?'me1':''}${fireCls(m.streak)}" style="${fireVar(m.streak)}">${fireBg(m.streak)}<div class="pos">${(!sr||m.streak>0)&&['🥇','🥈','🥉'][i]||i+1}</div>
   <div class="av ${m.on?'on':''}" style="background:${m.color}">${esc(m.nick[0].toUpperCase())}</div>
-  <div class="n"><b>${esc(m.nick)}${isVer(m.id)?TICK:''}${m.me?' (tú)':''}</b><small class="${m.act?'live':''}">${m.act?'Estudiando '+esc(m.act):m.on?'En línea':'Visto '+ago(m.seen)}</small></div><div class="t">${hm(m[S.rank])}</div></div>`).join('')}</div>`
+  <div class="n"><b>${esc(m.nick)}${isVer(m.id)?TICK:''}${m.me?' (tú)':''}</b><small class="${!sr&&m.act?'live':''}">${sr?'Récord: '+dias(m.best):m.act?'Estudiando '+esc(m.act):m.on?'En línea':'Visto '+ago(m.seen)}</small></div><div class="t">${sr?FL+' '+dias(m.streak):hm(m[S.rank])}</div></div>`).join('')}</div>${sr?'<div class="hint">Ranking por racha actual. Un día suma si estudias 1 h o más. El borde de fuego aparece en el día 5 y llega al máximo en el día 30.</div>':''}`
     :`<div class="empty">Todavía no hay nadie en el ranking.<br>Empieza a estudiar y serás el primero.</div>`;
   return h;
 }
