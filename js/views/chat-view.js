@@ -4,6 +4,7 @@ import { state } from '../state.js';
 import { community } from '../services/community.js';
 import { esc } from '../utils/dom.js';
 import { formatTime } from '../utils/format.js';
+import { displayNick } from '../utils/nick.js';
 
 /** Text typed but not sent yet; it survives re-renders. */
 export const chatDraft = { text: '' };
@@ -13,8 +14,9 @@ const MAX_BUBBLES = 80;
 function bubble(m) {
   const mine = m.uid === community.uid;
   const color = COLORS.includes(m.color) ? m.color : COLORS[0];
-  return `<div class="msg ${mine ? 'mine' : ''}" id="m_${esc(m.k)}"><div class="av" style="background:${color}">${esc(String(m.nick || '?')[0].toUpperCase())}</div>
-  <div class="bb"><small>${mine ? 'Tú' : esc(m.nick)} ${formatTime(m.ts)}${mine ? `<button class="lk" data-delm="${esc(m.k)}">borrar</button>` : ''}</small><p>${esc(m.text)}</p></div></div>`;
+  const nick = displayNick(m.nick);
+  return `<div class="msg ${mine ? 'mine' : ''}" id="m_${esc(m.k)}"><div class="av" style="background:${color}">${esc(nick[0].toUpperCase())}</div>
+  <div class="bb"><small>${mine ? 'Tú' : esc(nick)} ${formatTime(m.ts)}${mine ? `<button class="lk" data-delm="${esc(m.k)}">borrar</button>` : ''}</small><p>${esc(m.text)}</p></div></div>`;
 }
 
 export function chatView() {

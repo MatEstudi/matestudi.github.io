@@ -2,10 +2,11 @@
 import { COLORS, NICK_MAX } from '../config.js';
 import { state, replaceState } from '../state.js';
 import { sanitizeState, save } from '../storage.js';
-import { sync } from '../services/community.js';
+import { claimNick, community, releaseNick, sync } from '../services/community.js';
 import { stop } from '../timer.js';
 import { $, esc, toast } from '../utils/dom.js';
 import { clampInt, dateKey } from '../utils/format.js';
+import { nickError } from '../utils/nick.js';
 import { render } from './renderer.js';
 
 const MAX_BACKUP_BYTES = 2e6;
@@ -15,7 +16,8 @@ export function openSettings() {
   if (dialog.open) return;
 
   dialog.innerHTML = `<h2>Perfil y ajustes</h2>
-  <label for="set-name">Nombre en el ranking</label><input type="text" id="set-name" maxlength="${NICK_MAX}" value="${esc(state.nick)}" placeholder="Tu nombre">
+  <label for="set-name">Nombre en el ranking</label><input type="text" id="set-name" maxlength="${NICK_MAX}" value="${esc(state.nick)}" placeholder="Tu nombre" autocomplete="off" autocapitalize="off" spellcheck="false">
+  <p class="err" id="set-err" role="alert"></p>
   <label>Color</label><div class="cols">${COLORS.map(c => `<button type="button" data-col="${c}" class="${c === state.color ? 'on' : ''}" style="background:${c}" aria-label="Color ${c}"></button>`).join('')}</div>
   <label for="set-goal-day">Meta diaria (horas)</label><input type="number" id="set-goal-day" min="1" max="24" value="${state.goalD}">
   <label for="set-goal-week">Meta semanal (horas)</label><input type="number" id="set-goal-week" min="1" max="168" value="${state.goalW}">
@@ -24,6 +26,11 @@ export function openSettings() {
 
   let color = state.color;
   const find = selector => dialog.querySelector(selector);
+
+  find('#set-name').oninput = e => {
+    const value = e.target.value.trim();
+    find('#set-err').textContent = value ? nickError(value) : '';
+  };
 
   dialog.onclick = e => {
     const swatch = e.target.closest('[data-col]');
@@ -34,8 +41,26 @@ export function openSettings() {
 
   find('#set-close').onclick = () => dialog.close();
 
-  find('#set-save').onclick = () => {
-    state.nick = find('#set-name').value.trim().slice(0, NICK_MAX);
+  find('#set-save').onclick = async () => {
+    const name = find('#set-name').value.trim();
+    const errorBox = find('#set-err');
+    const button = find('#set-save');
+    errorBox.textContent = '';
+
+    if (name) {
+      const invalid = nickError(name);
+      if (invalid) { errorBox.textContent = invalid; return; }
+      if (community.ok) {
+        button.disabled = true;
+        const result = await claimNick(name, state.nick); // fails when the name is taken
+        button.disabled = false;
+        if (!result.ok) { errorBox.textContent = result.reason; return; }
+      }
+    } else if (state.nick) {
+      releaseNick(state.nick);
+    }
+
+    state.nick = name;
     state.color = color;
     state.goalD = Math.min(24, clampInt(find('#set-goal-day').value) || 3);
     state.goalW = Math.min(168, clampInt(find('#set-goal-week').value) || 15);

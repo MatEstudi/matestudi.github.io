@@ -2,7 +2,7 @@
 import { EVENTS, MESSAGE_MAX, POMODORO_SECONDS, STORAGE_KEY } from '../config.js';
 import { state } from '../state.js';
 import { loadState, save } from '../storage.js';
-import { community, sync } from '../services/community.js';
+import { community, isNickReady, sync } from '../services/community.js';
 import { deleteMessage, postMessage } from '../services/chat.js';
 import { capCatchUp, finish, stop, toggle } from '../timer.js';
 import { $, toast } from '../utils/dom.js';
@@ -20,6 +20,7 @@ function sendMessage() {
   if (!text) return;
   if (!state.nick) return openSettings();
   if (!community.ok) return toast('Sin conexión con la comunidad');
+  if (!isNickReady()) return toast('Tu nombre aún se está confirmando. Inténtalo en unos segundos.');
   if (Date.now() - lastSentAt < CHAT_COOLDOWN_MS) return toast('Espera un segundo antes de enviar otro mensaje');
   lastSentAt = Date.now();
   postMessage(text).catch(() => toast('No se pudo enviar. Revisa las reglas de Realtime Database.'));

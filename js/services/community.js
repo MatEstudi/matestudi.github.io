@@ -9,12 +9,13 @@
  * Changes are announced with custom DOM events (see EVENTS in config.js).
  */
 import {
-  CHAT_PATH, COLORS, DAY_MS, DAY_SECONDS, EVENTS, FIREBASE_CONFIG, NICK_MAX, SUBJECTS,
+  CHAT_PATH, COLORS, DAY_MS, DAY_SECONDS, EVENTS, FIREBASE_CONFIG, NICK_MAX, SUBJECTS, USERNAMES_PATH,
 } from '../config.js';
 import { state } from '../state.js';
 import { computeStats } from '../progress.js';
 import { emit } from '../utils/dom.js';
 import { clampInt, dateKey, startOfWeek } from '../utils/format.js';
+import { isValidNick, nickError, nickKey } from '../utils/nick.js';
 
 export const community = {
   ok: false, // true once signed in; false means "local mode"
@@ -33,6 +34,7 @@ let lastProfile = '';
 let lastPresenceSig = '';
 let stopUsersListener = null;
 let pruned = false;
+let nickReady = false; // true once the current nickname is registered to this user
 
 /** Current time according to the Firebase server clock (ms). */
 export const serverNow = () => Date.now() + serverOffset;
@@ -101,7 +103,7 @@ export function listenUsers(on) {
 
 /** Publishes your presence and stats, skipping writes when nothing relevant changed. */
 export function sync(force = false, final = false) {
-  if (!community.ok || !state.nick) return;
+  if (!community.ok || !state.nick || !nickReady) return;
   const now = Date.now();
   const stats = computeStats();
   const active = state.run ? SUBJECTS[state.run].n : null;
@@ -174,7 +176,7 @@ export function members() {
       });
     }
 
-    if (!u.nickname) return;
+    if (!isValidNick(String(u.nickname || ''))) return; // hides legacy or tampered names
     if (!u.online && now - (u.updatedAt || 0) > 30 * DAY_MS) return; // ghost users
 
     // Other people's stats are only written every few minutes: estimate the time since then.
@@ -221,3 +223,44 @@ function pruneStale() {
   run(CHAT_PATH, 'ts', 7 * DAY_MS);
   run('presence', 'lastSeen', 30 * DAY_MS);
 }
+
+/**
+ * Registers `name` as yours in usernames/<name>. The database rules only accept the write when
+ * the name is free (or already yours), so two people can never end up with the same name.
+ * Resolves to { ok } or { ok: false, code: 'invalid' | 'taken' | 'offline' | 'error', reason }.
+ */
+export async function claimNick(name, previous = '') {
+  const error = nickError(name);
+  if (error) return { ok: false, code: 'invalid', reason: error };
+  if (!community.ok) return { ok: false, code: 'offline', reason: 'Sin conexión: no se puede comprobar si el nombre está libre.' };
+
+  const ref = community.rt.ref(`${USERNAMES_PATH}/${nickKey(name)}`);
+  const taken = { ok: false, code: 'taken', reason: 'Ese nombre ya está en uso. Elige otro.' };
+  const ownerOf = async () => (await ref.once('value')).val();
+  try {
+    const owner = await ownerOf();
+    if (owner && owner !== community.uid) return taken;
+    await ref.set(community.uid);
+  } catch (err) {
+    try {
+      const owner = await ownerOf();
+      if (owner && owner !== community.uid) return taken; // someone claimed it a moment before us
+    } catch { /* fall through */ }
+    console.warn('Nombre:', err);
+    return { ok: false, code: 'error', reason: 'No se pudo comprobar el nombre. ¿Has publicado las reglas nuevas de Realtime Database?' };
+  }
+
+  if (previous && nickKey(previous) !== nickKey(name)) releaseNick(previous);
+  nickReady = true;
+  lastPresenceSig = '';
+  lastFirestoreSig = '';
+  return { ok: true };
+}
+
+/** Frees a name you own so someone else can use it. */
+export function releaseNick(name) {
+  if (!community.ok || !isValidNick(name)) return Promise.resolve();
+  return community.rt.ref(`${USERNAMES_PATH}/${nickKey(name)}`).remove().catch(() => {});
+}
+
+export const isNickReady = () => nickReady;

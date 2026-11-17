@@ -14,6 +14,11 @@ export const MIN_SESSION_SECONDS = 10;
 export const MAX_SESSIONS = 50;
 
 export const NICK_MAX = 20;
+export const NICK_MIN = 3;
+/** Allowed nickname characters: ASCII letters, digits, "-" and "_" (no accents, spaces or emojis). */
+export const NICK_RE = /^[A-Za-z0-9_-]+$/;
+/** Realtime Database path of the nickname registry: usernames/<lowercase name> = uid of its owner. */
+export const USERNAMES_PATH = 'usernames';
 export const MESSAGE_MAX = 300;
 
 export const SUBJECTS = {
