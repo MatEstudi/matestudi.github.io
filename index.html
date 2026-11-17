@@ -12,7 +12,7 @@ Firestore:
   match /databases/{db}/documents { match /users/{uid} {
     allow read: if request.auth != null;
     allow write: if request.auth.uid == uid
-      && request.resource.data.nickname is string && request.resource.data.nickname.size() <= 20
+      && request.resource.data.nickname is string && (request.resource.data.nickname == '' || (request.resource.data.nickname.size() >= 3 && request.resource.data.nickname.size() <= 20 && request.resource.data.nickname.matches('^[A-Za-z0-9ÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜÝàáâãäåçèéêëìíîïñòóôõöùúûüýÿ]+( [A-Za-z0-9ÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜÝàáâãäåçèéêëìíîïñòóôõöùúûüýÿ]+)*$')))
       && request.resource.data.todaySeconds <= 86400 && request.resource.data.totalSeconds >= 0;
     allow delete: if request.auth.uid == uid; } }
 Realtime Database (publica estas reglas en Realtime Database > Reglas; son JSON válido):
@@ -35,7 +35,7 @@ Realtime Database (publica estas reglas en Realtime Database > Reglas; son JSON 
             ".validate": "newData.isNumber()"
           },
           "nickname": {
-            ".validate": "newData.isString() && newData.val().length<=20"
+            ".validate": "newData.isString() && newData.val().length>=3 && newData.val().length<=20 && newData.val().matches(/^[A-Za-z0-9ÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜÝàáâãäåçèéêëìíîïñòóôõöùúûüýÿ]+( [A-Za-z0-9ÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜÝàáâãäåçèéêëìíîïñòóôõöùúûüýÿ]+)*$/)"
           },
           "avatarColor": {
             ".validate": "newData.isString() && newData.val().length<=7"
@@ -48,6 +48,17 @@ Realtime Database (publica estas reglas en Realtime Database > Reglas; son JSON 
           }
         }
       },
+      "nicks": {
+        "$key": {
+          ".read": "auth!=null",
+          ".write": "auth!=null && ((newData.exists() && newData.child('uid').val()===auth.uid && (!data.exists() || data.child('uid').val()===auth.uid || data.child('ts').val() < now-2592000000)) || (!newData.exists() && data.child('uid').val()===auth.uid))",
+          ".validate": "$key.matches(/^[a-z0-9]{3,20}$/) && newData.hasChildren(['uid','nick','ts']) && newData.child('nick').isString() && newData.child('nick').val().length<=20 && newData.child('ts').val()===now",
+          "uid": { ".validate": "newData.val()===auth.uid" },
+          "nick": { ".validate": true },
+          "ts": { ".validate": true },
+          "$other": { ".validate": false }
+        }
+      },
       "chat": {
         "general": {
           ".read": "auth!=null",
@@ -56,7 +67,7 @@ Realtime Database (publica estas reglas en Realtime Database > Reglas; son JSON 
           ],
           "$id": {
             ".write": "auth!=null && ((!data.exists() && newData.child('uid').val()===auth.uid) || (data.exists() && !newData.exists() && (data.child('uid').val()===auth.uid || data.child('ts').val() < now-604800000)))",
-            ".validate": "newData.hasChildren(['uid','nick','text','ts','color']) && newData.child('text').isString() && newData.child('text').val().length>0 && newData.child('text').val().length<=300 && newData.child('nick').isString() && newData.child('nick').val().length<=20 && newData.child('color').isString() && newData.child('color').val().length<=7 && newData.child('ts').val()===now",
+            ".validate": "newData.hasChildren(['uid','nick','text','ts','color']) && newData.child('text').isString() && newData.child('text').val().length>0 && newData.child('text').val().length<=300 && newData.child('nick').isString() && newData.child('nick').val().length>=3 && newData.child('nick').val().length<=20 && newData.child('nick').val().matches(/^[A-Za-z0-9ÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜÝàáâãäåçèéêëìíîïñòóôõöùúûüýÿ]+( [A-Za-z0-9ÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜÝàáâãäåçèéêëìíîïñòóôõöùúûüýÿ]+)*$/) && newData.child('color').isString() && newData.child('color').val().length<=7 && newData.child('ts').val()===now",
             "uid": {
               ".validate": true
             },
@@ -220,6 +231,14 @@ const blank=()=>({theme:'light',view:'study',sel:'fonaments',mode:'free',rank:'d
   run:null,cur:0,phase:0,rem:POMO[0]});
 let S=blank(),last=0,loop=null,tick5=0,saveT=0;
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const NCH='A-Za-z0-9ÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜÝàáâãäåçèéêëìíîïñòóôõöùúûüýÿ',NICK_RE=new RegExp('^['+NCH+']+(?: ['+NCH+']+)*$');
+const nickKey=n=>String(n).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/ /g,'');
+function nickErr(n){
+  if(n.length<3||n.length>20)return 'El nombre debe tener entre 3 y 20 caracteres';
+  if(!NICK_RE.test(n))return 'Solo letras, números y espacios (sin emojis ni símbolos)';
+  if(!/^[a-z0-9]{3,20}$/.test(nickKey(n)))return 'Mínimo 3 caracteres sin contar los espacios';
+  return '';
+}
 const num=(v,max=1e9)=>Math.min(max,Math.max(0,Math.floor(+v||0)));
 const dk=(d=new Date())=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const monday=()=>{const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-((d.getDay()+6)%7));return d};
@@ -296,12 +315,38 @@ async function initFb(){
     const au=firebase.auth();fb.db=firebase.firestore();fb.rt=firebase.database();
     const u=await new Promise((r,j)=>{const x=au.onAuthStateChanged(v=>{x();r(v)},j)});
     if(!u)await au.signInAnonymously();
-    fb.uid=au.currentUser.uid;fb.ok=true;fb.rt.ref('.info/serverTimeOffset').on('value',s=>{off=s.val()||0});
+    fb.uid=au.currentUser.uid;fb.ok=true;if(S.nick)await checkNick();fb.rt.ref('.info/serverTimeOffset').on('value',s=>{off=s.val()||0});
     fb.rt.ref('.info/connected').on('value',s=>{if(s.val()){
       fb.rt.ref('presence/'+fb.uid).onDisconnect().update({online:false,lastSeen:firebase.database.ServerValue.TIMESTAMP,active:null,since:null}).catch(()=>{});lastPrSig='';sync(true)}});
     fb.rt.ref('presence').on('value',s=>{fb.pres=s.val()||{};if(S.view==='group'&&S.gv!=='chat')render();else badge()});
     syncListeners();badge();setTimeout(prune,8000);
   }catch(e){fb.ok=false;console.warn('Modo local:',e)}
+}
+/* Nombres únicos: nicks/{nombre en minúsculas sin acentos ni espacios} = {uid,nick,ts}. Un nombre sin tocar durante 30 días queda libre. */
+async function claimNick(n){
+  const ref=fb.rt.ref('nicks/'+nickKey(n));
+  try{
+    const cur=(await ref.once('value')).val();
+    if(cur&&cur.uid!==fb.uid&&sNow()-(+cur.ts||0)<30*864e5)return 'taken';
+    await ref.set({uid:fb.uid,nick:n,ts:firebase.database.ServerValue.TIMESTAMP});return 'ok';
+  }catch(e){
+    try{const c=(await ref.once('value')).val();if(c&&c.uid!==fb.uid)return 'taken'}catch(x){}
+    return 'error';
+  }
+}
+function releaseNick(old,keep){
+  if(!fb.ok||!old)return;const k=nickKey(old);
+  if(!/^[a-z0-9]{3,20}$/.test(k)||(keep&&nickKey(keep)===k))return;
+  fb.rt.ref('nicks/'+k).remove().catch(()=>{});
+}
+async function checkNick(){
+  let bad=nickErr(S.nick);
+  if(!bad&&await claimNick(S.nick)==='taken')bad='uso';
+  if(!bad)return;
+  S.nick='';save(true);lastPrSig='';lastProf='';
+  fb.rt.ref('presence/'+fb.uid+'/nickname').remove().catch(()=>{});
+  fb.db.collection('users').doc(fb.uid).set({nickname:''},{merge:true}).catch(()=>{});
+  render();toast('Tu nombre no es válido o ya está en uso. Elige otro.');settings();
 }
 /* Firestore solo se LEE con la pestaña Comunidad abierta y solo usuarios activos en los últimos 30 días. */
 function listenUsers(on){
@@ -334,7 +379,7 @@ function members(){
   new Set([...Object.keys(fb.users),...Object.keys(fb.pres)]).forEach(id=>{
     const me=id===fb.uid,u={...fb.users[id],...fb.pres[id]};
     if(me&&S.nick){const st=stats();Object.assign(u,{nickname:S.nick,avatarColor:S.color,totalSeconds:st.total,todaySeconds:st.today,todayDateKey:tk,weeklySeconds:st.week,weekStartKey:wk,online:fb.ok,active:S.run?SUBJ[S.run].n:null,since:S.run?now+off-S.cur*1000:null,lastSeen:now,updatedAt:now})}
-    if(!u.nickname)return;
+    if(!u.nickname||!NICK_RE.test(String(u.nickname)))return;
     if(!u.online&&now-(u.updatedAt||0)>30*864e5)return;           // usuarios fantasma
     const extra=(!me&&u.online&&u.active)?Math.min(600,Math.max(0,(now+off-(Math.max(+u.updatedAt||0,+u.since||0)||now+off))/1000)):0; // frescura de datos ajenos
     out.push({id,me,nick:String(u.nickname).slice(0,20),color:COLORS.includes(u.avatarColor)?u.avatarColor:COLORS[0],on:!!u.online,act:u.online?u.active:null,since:+u.since||0,seen:+u.lastSeen||+u.updatedAt||0,
@@ -450,9 +495,9 @@ function render(){
 let draft='',lastMsg=0,chatRef=null;
 const hhmm=t=>{const d=new Date(t||Date.now());return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')};
 function bubble(m){
-  const me=m.uid===fb.uid,col=COLORS.includes(m.color)?m.color:COLORS[0];
-  return `<div class="msg ${me?'mine':''}" id="m_${esc(m.k)}"><div class="av" style="background:${col}">${esc(String(m.nick||'?')[0].toUpperCase())}</div>
-  <div class="bb"><small>${me?'Tú':esc(m.nick)} ${hhmm(m.ts)}${me?`<button class="lk" data-delm="${esc(m.k)}">borrar</button>`:''}</small><p>${esc(m.text)}</p></div></div>`;
+  const me=m.uid===fb.uid,col=COLORS.includes(m.color)?m.color:COLORS[0],nk=NICK_RE.test(String(m.nick))?String(m.nick):'Anónimo';
+  return `<div class="msg ${me?'mine':''}" id="m_${esc(m.k)}"><div class="av" style="background:${col}">${esc(nk[0].toUpperCase())}</div>
+  <div class="bb"><small>${me?'Tú':esc(nk)} ${hhmm(m.ts)}${me?`<button class="lk" data-delm="${esc(m.k)}">borrar</button>`:''}</small><p>${esc(m.text)}</p></div></div>`;
 }
 function chatView(){
   const ms=fb.msgs||[];
@@ -498,7 +543,7 @@ function sendMsg(){
 function settings(){
   const d=$('#dlg');
   d.innerHTML=`<h2 style="margin-top:0">Perfil y ajustes</h2>
-  <label for="pn">Nombre en el ranking</label><input type="text" id="pn" maxlength="20" value="${esc(S.nick)}" placeholder="Tu nombre">
+  <label for="pn">Nombre en el ranking</label><input type="text" id="pn" maxlength="20" autocomplete="off" value="${esc(S.nick)}" placeholder="Tu nombre"><small id="pnerr" style="display:block;color:#ef4444;margin-top:4px"></small><small style="display:block;color:var(--mut);margin-top:2px">3–20 caracteres: letras, números y espacios. Debe ser único.</small>
   <label>Color</label><div class="cols">${COLORS.map(c=>`<button type="button" data-col="${c}" class="${c===S.color?'on':''}" style="background:${c}" aria-label="Color ${c}"></button>`).join('')}</div>
   <label for="gd">Meta diaria (horas)</label><input type="number" id="gd" min="1" max="24" value="${S.goalD}">
   <label for="gw">Meta semanal (horas)</label><input type="number" id="gw" min="1" max="168" value="${S.goalW}">
@@ -507,10 +552,22 @@ function settings(){
   let col=S.color;
   d.onclick=e=>{const c=e.target.closest('[data-col]');if(c){col=c.dataset.col;d.querySelectorAll('[data-col]').forEach(b=>b.classList.toggle('on',b===c))}};
   $('#cl').onclick=()=>d.close();
-  $('#ok').onclick=()=>{S.nick=$('#pn').value.trim().slice(0,20);S.color=col;S.goalD=Math.min(24,num($('#gd').value)||3);S.goalW=Math.min(168,num($('#gw').value)||15);save(true);d.close();render();sync(true);toast('Guardado')};
+  $('#pn').oninput=e=>{const v=e.target.value.replace(new RegExp('[^'+NCH+' ]','g'),'');if(v!==e.target.value)e.target.value=v};
+  $('#ok').onclick=async()=>{
+    const b=$('#ok'),er=$('#pnerr'),raw=$('#pn').value.trim().replace(/\s+/g,' '),old=S.nick;er.textContent='';
+    if(raw){
+      const m=nickErr(raw);if(m){er.textContent=m;return}
+      if(fb.ok&&raw!==old){
+        b.disabled=true;const r=await claimNick(raw);b.disabled=false;
+        if(r==='taken'){er.textContent='Ese nombre ya está en uso. Elige otro.';return}
+        if(r==='error'){er.textContent='No se pudo comprobar el nombre. Revisa las reglas de Realtime Database.';return}
+      }
+    }
+    if(old&&raw!==old)releaseNick(old,raw);
+    S.nick=raw;S.color=col;S.goalD=Math.min(24,num($('#gd').value)||3);S.goalW=Math.min(168,num($('#gw').value)||15);save(true);d.close();render();sync(true);toast('Guardado')};
   $('#ex').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({...S,run:null},null,1)],{type:'application/json'}));a.download=`mathstudy_${dk()}.json`;a.click();URL.revokeObjectURL(a.href)};
   $('#im').onchange=e=>{const f=e.target.files[0];if(!f||f.size>2e6)return toast('Archivo no válido');const r=new FileReader();
-    r.onload=()=>{try{const o=JSON.parse(r.result);if(!o||typeof o!=='object'||!(o.tot||o.subjects))throw 0;const v=S.view;stop();S=clean(o);S.view=v;save(true);d.close();render();sync(true);toast('Datos importados')}catch(x){toast('El archivo no es una copia válida')}};r.readAsText(f)};
+    r.onload=()=>{try{const o=JSON.parse(r.result);if(!o||typeof o!=='object'||!(o.tot||o.subjects))throw 0;const v=S.view;stop();S=clean(o);S.view=v;save(true);d.close();render();(fb.ok&&S.nick?checkNick():Promise.resolve()).then(()=>sync(true));toast('Datos importados')}catch(x){toast('El archivo no es una copia válida')}};r.readAsText(f)};
 }
 
 /* ---------- Eventos ---------- */
