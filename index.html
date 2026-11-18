@@ -62,7 +62,7 @@ Realtime Database (publica estas reglas en Realtime Database > Reglas; son JSON 
         ".read": "auth!=null",
         "$target": {
           "$from": {
-            ".write": "auth!=null && auth.uid===$from",
+            ".write": "auth!=null && auth.uid===$from && auth.token.firebase.sign_in_provider!=='anonymous'",
             ".validate": "newData.isString() && newData.val().matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)"
           }
         }
@@ -566,6 +566,7 @@ function listenCheers(on){
 setInterval(()=>{if(cheerDay&&cheerDay!==cheerKey()){cheerDay=cheerKey();if(S.view==='group'&&S.gv==='friends')render()}},30000);
 function cheer(id){
   if(!fb.ok||!id||id===fb.uid)return;
+  if(!fb.acct)return toast('Crea una cuenta para poder dar ánimos');
   const c=fb.cheers[id]||(fb.cheers[id]={}),old=c[fb.uid],had=old===cheerKey(),ref=fb.rt.ref('cheers/'+id+'/'+fb.uid);
   had?delete c[fb.uid]:c[fb.uid]=cheerKey();render();
   (had?ref.remove():ref.set(cheerKey())).catch(()=>{old===undefined?delete c[fb.uid]:c[fb.uid]=old;render();toast('No se pudo enviar el ánimo. Revisa las reglas de Realtime Database.')});
@@ -859,7 +860,7 @@ const ago=t=>{if(!t)return 'hace tiempo';const x=Math.max(0,(sNow()-t)/1000);if(
 function cheerBtn(m,nm){
   const n=cheerN(m.id),mine=(fb.cheers[m.id]||{})[fb.uid]===cheerKey();
   if(m.me)return n?`<span class="chr ro" title="Personas que te han animado hoy">${nm?'<span class="cn">'+esc(m.nick)+'</span>':''}👏<b>${n}</b></span>`:'';
-  return `<button class="chr${mine?' on':''}" data-cheer="${esc(m.id)}" title="${mine?'Quitar tu ánimo de hoy':'Dar ánimos (se reinician cada día)'}" aria-pressed="${mine}">${nm?'<span class="cn">'+esc(m.nick)+'</span>':''}👏<b>${n}</b></button>`;
+  return `<button class="chr${mine?' on':''}" data-cheer="${esc(m.id)}" title="${!fb.acct?'Crea una cuenta para dar ánimos':mine?'Quitar tu ánimo de hoy':'Dar ánimos (se reinician cada día)'}" aria-pressed="${mine}">${nm?'<span class="cn">'+esc(m.nick)+'</span>':''}👏<b>${n}</b></button>`;
 }
 function friend(m){
   const st=m.act?`<small class="live">Estudiando ${esc(m.act)}</small>`:m.on?'<small class="live">En línea</small>':`<small>Última conexión ${ago(m.seen)}</small>`;
