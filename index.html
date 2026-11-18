@@ -338,6 +338,22 @@ button.chr:hover{border-color:var(--acc)}
 .rkt.r3{background:linear-gradient(120deg,#fde047,#f97316,#ec4899,#8b5cf6,#38bdf8,#fde047);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 3px rgba(253,224,71,.95)) drop-shadow(0 0 8px rgba(249,115,22,.8)) drop-shadow(0 0 14px rgba(139,92,246,.55));animation:rkt3 4s linear infinite}
 @keyframes rkt3{to{background-position:300% 0}}
 @media(prefers-reduced-motion:reduce){.rkt.r3{animation:none}}
+
+.stv{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;background:radial-gradient(700px 420px at 50% -80px,color-mix(in srgb,var(--acc) 28%,transparent),transparent),var(--bg);padding:calc(env(safe-area-inset-top) + 14px) 18px calc(env(safe-area-inset-bottom) + 16px);animation:stin .3s ease}
+.stp{display:flex;gap:4px;max-width:420px;width:100%;margin:0 auto}
+.stp i{flex:1;height:4px;border-radius:4px;background:var(--line);transition:background .3s}.stp i.on{background:var(--acc)}
+.stt{display:flex;justify-content:space-between;align-items:center;max-width:420px;width:100%;margin:10px auto 0;color:var(--mut);font-size:13px;font-weight:600}
+.stt button{padding:6px 10px;border-radius:10px;color:var(--mut);font-weight:600}
+.sts{flex:1;display:flex;min-height:0;overflow-y:auto;padding:14px 0;cursor:pointer}
+.stc{width:100%;max-width:420px;margin:auto}
+.stc>*{animation:stcard .45s cubic-bezier(.2,.8,.2,1)}
+.stc>.wc,.stc>.w2{zoom:1.15}
+.stc .wc{box-shadow:0 18px 50px rgba(0,0,0,.14)}
+.stn{display:flex;gap:10px;max-width:420px;width:100%;margin:0 auto}
+.stn .ghost{flex:none;width:52px;font-size:20px}.stn .mini{flex:1;padding:14px}
+@keyframes stin{from{opacity:0}}
+@keyframes stcard{from{opacity:0;transform:translateY(24px) scale(.96)}}
+@media(prefers-reduced-motion:reduce){.stv,.stc>*{animation:none}}
 </style>
 </head>
 <body>
@@ -372,7 +388,7 @@ const IDS=Object.keys(SUBJ),COLORS=['#6366f1','#10b981','#f43f5e','#f59e0b','#8b
 const SYM=['∀','∃','∈','⊂','∪','∩','ℝ','ℕ','ℤ','∑','∫','∞','⇒','⇔','≠','≤','≥','λ','ε','δ'];
 const fbCfg={apiKey:"AIzaSyDtBjHqSx7QyJZXlR7EsYAPmTadIu2hmnU",authDomain:"math-study-df821.firebaseapp.com",databaseURL:"https://math-study-df821-default-rtdb.europe-west1.firebasedatabase.app",projectId:"math-study-df821",storageBucket:"math-study-df821.firebasestorage.app",messagingSenderId:"278188701491",appId:"1:278188701491:web:703b085ecc312d0f9ef046"};
 const blank=()=>({rev:0,theme:'light',view:'study',sel:'fonaments',mode:'free',rank:'daily',gv:'friends',range:7,nick:'',color:COLORS[0],goalD:3,goalW:15,
-  tot:{fonaments:0,algebra:0,analisi:0},hist:{},sess:[],wk:{},
+  tot:{fonaments:0,algebra:0,analisi:0},hist:{},sess:[],wk:{},ws:{},
   run:null,cur:0,phase:0,rem:POMO[0]});
 let S=blank(),last=0,loop=null,tick5=0,saveT=0;
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -411,6 +427,7 @@ function clean(p){
     const e={t:0};IDS.forEach(i=>{e[i]=num(h[k]?.[i],86400);e.t+=e[i]});if(e.t)b.hist[k]=e});
   const wk=o.wk;if(wk&&typeof wk==='object')Object.keys(wk).filter(k=>/^\d{4}-\d{2}-\d{2}$/.test(k)).sort().slice(-12).forEach(k=>{const v=wk[k]||{},h=(Array.isArray(v.h)?v.h:[]).slice(0,24).map(n=>num(n,86400));while(h.length<24)h.push(0);
     const l=v.l&&IDS.includes(v.l.s)&&num(v.l.d,86400)>0?{d:num(v.l.d,86400),s:v.l.s}:null;b.wk[k]={h,f:num(v.f,604800),p:num(v.p,604800),l}});
+  const ws=o.ws;if(ws&&typeof ws==='object')Object.keys(ws).filter(k=>/^\d{4}-\d{2}-\d{2}$/.test(k)&&ws[k]).sort().slice(-12).forEach(k=>{b.ws[k]=1});
   b.sess=(Array.isArray(o.sess??o.sessions)?(o.sess??o.sessions):[]).map(x=>({s:x.s??x.subjectId,d:num(x.d??x.durationSeconds,86400),at:x.at??(Date.parse(x.dateISO)||0),n:String(x.n??x.note??'').slice(0,60)})).filter(x=>IDS.includes(x.s)&&x.d>0).slice(0,50);
   return b;
 }
@@ -442,7 +459,7 @@ function toggle(){
   else{load2();S.run=S.sel;start()}
   render();sync(true);save(true);
 }
-function load2(){try{const r=JSON.parse(localStorage.getItem(KEY));if(r){const o=clean(r);S.tot=o.tot;S.hist=o.hist;S.sess=o.sess;S.wk=o.wk}}catch(e){}}
+function load2(){try{const r=JSON.parse(localStorage.getItem(KEY));if(r){const o=clean(r);S.tot=o.tot;S.hist=o.hist;S.sess=o.sess;S.wk=o.wk;S.ws={...S.ws,...o.ws}}}catch(e){}}
 function endSession(note){if(S.cur>=10){S.sess.unshift({s:S.run||S.sel,d:S.cur,at:Date.now(),n:note});S.sess=S.sess.slice(0,50);const w=wkRec(dk(wkStart()),true);if(!w.l||S.cur>w.l.d)w.l={d:S.cur,s:S.run||S.sel}}S.cur=0}
 function finish(){const had=S.cur;stop();endSession(S.mode==='pomo'?'Pomodoro':'Libre');if(had>=10)toast('Sesión guardada: '+hm(had));S.phase=0;S.rem=POMO[0];render();sync(true);save(true)}
 function bell(){try{const a=new(window.AudioContext||webkitAudioContext)(),o=a.createOscillator(),g=a.createGain();o.frequency.value=880;o.connect(g);g.connect(a.destination);g.gain.setValueAtTime(.2,a.currentTime);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+1.4);o.start();o.stop(a.currentTime+1.5)}catch(e){}}
@@ -548,7 +565,7 @@ async function checkNick(){
 function listenUsers(on){
   if(!fb.ok)return;
   if(on&&!unsubFs){
-    unsubFs=fb.db.collection('users').where('updatedAt','>',Date.now()-30*864e5).onSnapshot(s=>{
+    unsubFs=fb.db.collection('users').where('updatedAt','>',Date.now()-30*864e5).onSnapshot(s=>{fb.uL=true;
       s.docChanges().forEach(c=>{c.type==='removed'?delete fb.users[c.doc.id]:fb.users[c.doc.id]=c.doc.data()});
       if(S.view==='group'&&document.activeElement.tagName!=='INPUT')render();
     },e=>{console.warn('Firestore:',e);unsubFs=null});
@@ -614,20 +631,21 @@ function authMsg(e,ctx){
 /* Fusión segura del progreso: el tiempo solo crece, así que se queda el máximo de cada campo.
    Evita que un dispositivo con datos viejos pise lo que otro ya guardó. */
 function mergeProg(a,b){
-  const r={tot:{},hist:{},wk:{}};
+  const r={tot:{},hist:{},wk:{},ws:{}};
   IDS.forEach(i=>r.tot[i]=Math.max(a.tot[i]||0,b.tot[i]||0));
   new Set([...Object.keys(a.hist),...Object.keys(b.hist)]).forEach(k=>{
     const x=a.hist[k]||{},y=b.hist[k]||{},e={t:0};IDS.forEach(i=>{e[i]=Math.max(x[i]||0,y[i]||0);e.t+=e[i]});if(e.t)r.hist[k]=e});
   const wa=a.wk||{},wb=b.wk||{};
   new Set([...Object.keys(wa),...Object.keys(wb)]).forEach(k=>{const x=wa[k],y=wb[k];r.wk[k]=(!y||(x&&x.f+x.p>=y.f+y.p))?x:y});
   Object.keys(r.wk).sort().slice(0,-12).forEach(k=>delete r.wk[k]);
+  r.ws={...(a.ws||{}),...(b.ws||{})};Object.keys(r.ws).sort().slice(0,-12).forEach(k=>delete r.ws[k]);
   const seen=new Set();
   r.sess=[...a.sess,...b.sess].filter(x=>{const q=x.at+'|'+x.s+'|'+x.d;if(seen.has(q))return false;seen.add(q);return true}).sort((p,q)=>q.at-p.at).slice(0,50);
   return r;
 }
 /* Progreso en la nube: como mucho una escritura cada 5 min mientras estudias, y al instante al pausar, terminar o cambiar ajustes. */
 let pgQ=Promise.resolve(),lastPg='',lastPgAt=0;
-const progOf=()=>JSON.stringify({tot:S.tot,hist:S.hist,sess:S.sess,wk:S.wk,goalD:S.goalD,goalW:S.goalW,nick:S.nick,color:S.color});
+const progOf=()=>JSON.stringify({tot:S.tot,hist:S.hist,sess:S.sess,wk:S.wk,ws:S.ws,goalD:S.goalD,goalW:S.goalW,nick:S.nick,color:S.color});
 const syncProgress=force=>pgQ=pgQ.then(()=>pushProg(force));
 async function pushProg(force){
   if(!fb.ok||!fb.acct)return true;
@@ -642,8 +660,8 @@ async function pushProg(force){
       let c=null;try{c=clean(JSON.parse(cs))}catch(e){}
       const cr=Math.max(0,Math.floor(Number(sn.data().rev))||0);
       if(c&&cr>(S.rev||0)){ /* ajuste manual desde la consola: la nube manda, se sustituye lo local */
-        S.tot=c.tot;S.hist=c.hist;S.sess=c.sess;S.wk=c.wk;S.rev=cr;stop();render()}
-      else if(c){const m=mergeProg(S,c);S.tot=m.tot;S.hist=m.hist;S.sess=m.sess;S.wk=m.wk;
+        S.tot=c.tot;S.hist=c.hist;S.sess=c.sess;S.wk=c.wk;S.ws={...S.ws,...c.ws};S.rev=cr;stop();render()}
+      else if(c){const m=mergeProg(S,c);S.tot=m.tot;S.hist=m.hist;S.sess=m.sess;S.wk=m.wk;S.ws=m.ws;
         if(!S.nick){S.nick=c.nick;S.color=c.color;S.goalD=c.goalD;S.goalW=c.goalW}}
     }
     if(!S.nick)return true;
@@ -932,7 +950,8 @@ const EQ=[
   ['🏃',s=>s/9.58,(f)=>`ver ${f} ${f==='1'?'vez':'veces'} el récord mundial de Usain Bolt en los 100 m (9,58 s)`]
 ];
 const fmtN=n=>(n<10?Math.round(n*10)/10:Math.round(n)).toLocaleString('es');
-let wrapOff=0;
+const WRAP_SECS=0; // pon 5 para probar con una cuenta atrás de 5 segundos; 0 = desbloqueo real los viernes a las 13:50
+let wrapOff=0,wrapT0=0,wrapReveal=false;
 setInterval(()=>{document.querySelectorAll('[data-cd]').forEach(e=>{
   const r=Math.floor((+e.dataset.cd-Date.now())/1000);
   if(r<=0){if(S.view==='group'&&S.gv==='wrap')render();return}
@@ -996,18 +1015,24 @@ function commParts(st){
   const[a,b,c]=h.split('\u0001');return{a,b,c};
 }
 function wrapView(){
-  const now=new Date(),cs=wkStart(lnow()),ut=addD(cs,6);ut.setHours(13,50,0,0);const unl=now>=ut,latest=unl?cs:addD(cs,-7);
+  wrapLast=null;
+  const now=new Date(),cs=wkStart(lnow()),ut=addD(cs,6);ut.setHours(13,50,0,0);if(WRAP_SECS){wrapT0=wrapT0||Date.now()+WRAP_SECS*1000;ut.setTime(wrapT0)}const unl=now>=ut,latest=unl?cs:addD(cs,-7);
   wrapOff=Math.min(7,Math.max(0,wrapOff));
   const st=addD(latest,-7*wrapOff),en=addD(st,6),dm=d=>d.toLocaleDateString('es',{day:'numeric',month:'short'});
   let h='';
   if(!unl){
-    const ce=addD(cs,6),pr=Math.min(1,Math.max(0,(now-cs-DAY_OFF)/(ut-cs-DAY_OFF)));
-    h+=`<div class="card lockc"><div class="lkc">🔒</div><small class="k">Semana del ${dm(cs)} al ${dm(ce)}</small><div class="big">Tu semana tiene algo que contarte</div><div class="cd" data-cd="${ut.getTime()}">--</div><div class="bar"><i style="width:${pr*100}%"></i></div><div class="cap">Se revela el viernes a las 13:50. Hasta entonces, sigue estudiando…</div></div>`;
+    wrapReveal=true; /* si el contador estaba en marcha, al llegar a cero toca el botón Comenzar aunque la semana ya se hubiera visto */
+    const ce=addD(cs,6),pr=WRAP_SECS?Math.min(1,Math.max(0,1-(ut-now)/(WRAP_SECS*1000))):Math.min(1,Math.max(0,(now-cs-DAY_OFF)/(ut-cs-DAY_OFF)));
+    h+=`<div class="card lockc"><div class="lkc">🔒</div><small class="k">Semana del ${dm(cs)} al ${dm(ce)}</small><div class="big">Tu semana tiene algo que contarte</div><div class="cd" data-cd="${ut.getTime()}">--</div><div class="bar"><i style="width:${pr*100}%"></i></div><div class="cap">${WRAP_SECS?'Se revela en unos segundos…':'Se revela el viernes a las 13:50. Hasta entonces, sigue estudiando…'}</div></div>`;
   }
   h+=`<div class="wnav"><button data-wo="1" aria-label="Semana anterior" ${wrapOff>=7?'disabled':''}>‹</button><div style="text-align:center"><b>Semana del ${dm(st)} al ${dm(en)}</b><div class="hint" style="margin:0">Sábado a viernes</div></div><button data-wo="-1" aria-label="Semana siguiente" ${wrapOff<=0?'disabled':''}>›</button></div>`;
   const D=wrapData(st);
   if(!D.total)return h+`<div class="card empty">No estudiaste esta semana, así que no hay Wrapped.<br>La próxima será.</div>`;
   const act=D.days.filter(x=>x.t>0).length,C=commParts(st);
+  const pend=unl&&wrapOff===0&&(wrapReveal||!(S.ws&&S.ws[D.k])); /* listo pero aún sin ver: solo el botón, el resumen sale al terminar las tarjetas */
+  if(pend)h=`<div class="card lockc"><div class="lkc">🎬</div><small class="k">Semana del ${dm(st)} al ${dm(en)}</small><div class="big">Tu Wrapped ya está listo</div><button type="button" class="mini" data-wrep="1">Comenzar</button></div>`+h;
+  else h+=`<div style="text-align:center;margin:0 0 12px"><button type="button" class="ghost" data-wrep="1">▶ Ver las tarjetas una a una</button></div>`;
+  const i0=h.length;
   h+=`<div class="wr"><div class="card wc hero"><span class="em">🎓</span><small class="k">Tu semana en números</small><div class="big" style="font-size:34px">${hm(D.total)}</div><div class="cap">Estudiaste ${act} de 7 días · media de ${hm(D.total/7)} al día</div></div>`;
   if(C)h+=C.a;
   /* franja del día más activa */
@@ -1065,8 +1090,51 @@ function wrapView(){
     const hash=[...D.k].reduce((a,c)=>a+c.charCodeAt(0),0),e=cand[hash%cand.length],n=e[1](D.total);
     h+=`<div class="card wc"><span class="em">${e[0]}</span><small class="k">Equivalencia absurda</small><div class="big" style="font-size:19px">Estudiar ${hm(D.total)} equivale a ${e[2](fmtN(n))}.</div></div>`;
   }
+  wrapLast={k:D.k,wo:wrapOff,html:h.slice(i0)+'</div>',label:`Semana del ${dm(st)} al ${dm(en)}`};
+  if(pend)return h.slice(0,i0);
   return h+'</div><div class="hint">El Wrapped se desbloquea cada viernes a las 13:50 y cuenta de sábado a viernes.'+(C?' Los datos de la comunidad se actualizan cuando cada persona pausa el cronómetro o cierra la app.':'')+'</div>';
 }
+
+/* ---------- Mates Wrapped: modo tarjetas. La primera vez que se ve una semana salen una a una y al final queda el resumen completo ---------- */
+let wrapLast=null,stOpen=false,stI=0,stSl=[],stK='',stLabel='';
+function openStory(){
+  if(stOpen||!wrapLast)return;
+  const t=document.createElement('div');t.innerHTML=wrapLast.html;
+  const cards=[...(t.firstElementChild?t.firstElementChild.children:[])].map(c=>c.outerHTML);
+  if(!cards.length)return;
+  stLabel=wrapLast.label;stK=wrapLast.k;stI=0;stOpen=true;
+  stSl=[`<div class="card wc hero" style="text-align:center;padding:38px 24px"><span class="em">✨</span><small class="k" style="padding:0">Mates Wrapped</small><div class="big" style="font-size:30px;margin:10px 0 8px">Tu semana tiene algo que contarte</div><div class="cap">${esc(stLabel)}</div></div>`,...cards];
+  const v=document.createElement('div');v.className='stv';v.id='stv';v.setAttribute('role','dialog');v.setAttribute('aria-modal','true');v.setAttribute('aria-label','Mates Wrapped');
+  document.body.appendChild(v);document.body.style.overflow='hidden';
+  stDraw();
+}
+function stDraw(){
+  const v=$('#stv');if(!v)return;const last=stI===stSl.length-1;
+  v.innerHTML=`<div class="stp">${stSl.map((_,i)=>`<i class="${i<=stI?'on':''}"></i>`).join('')}</div>
+  <div class="stt"><span>${esc(stLabel)}</span><button type="button" data-stx="1">${last?'Cerrar':'Saltar'}</button></div>
+  <div class="sts" data-stnext="1"><div class="stc">${stSl[stI]}</div></div>
+  <div class="stn">${stI?'<button type="button" class="ghost" data-stprev="1" aria-label="Tarjeta anterior">‹</button>':''}<button type="button" class="mini" id="stnb" data-stnext="1">${stI===0?'Empezar':last?'Ver resumen':'Siguiente'}</button></div>`;
+  const b=$('#stnb');if(b)b.focus({preventScroll:true});
+}
+function stNext(){stI<stSl.length-1?(stI++,stDraw()):stClose()}
+function stClose(){
+  const v=$('#stv');if(v)v.remove();
+  document.body.style.overflow='';stOpen=false;wrapReveal=false;
+  if(stK){S.ws=S.ws||{};if(!S.ws[stK]){S.ws[stK]=1;Object.keys(S.ws).sort().slice(0,-12).forEach(k=>delete S.ws[k]);save(true);syncProgress(true)}}
+  render();scrollTo(0,0);
+}
+document.addEventListener('click',e=>{
+  const t=e.target;if(!stOpen||!t.closest||!t.closest('#stv'))return;
+  if(t.closest('[data-stprev]')){if(stI>0){stI--;stDraw()}return}
+  if(t.closest('[data-stx]'))return stClose();
+  if(t.closest('[data-stnext]'))stNext();
+});
+document.addEventListener('keydown',e=>{
+  if(!stOpen)return;
+  if(e.key==='ArrowRight')stNext();
+  else if(e.key==='ArrowLeft'){if(stI>0){stI--;stDraw()}}
+  else if(e.key==='Escape'){e.preventDefault();stClose()}
+});
 
 function group(){
   const ms=members();let h=`<div class="seg gseg" style="margin:0 0 14px"><button data-gv="friends" class="${S.gv==='friends'?'on':''}">Amigos</button><button data-gv="rank" class="${S.gv==='rank'?'on':''}">Ranking</button><button data-gv="chat" class="${S.gv==='chat'?'on':''}">Chat</button><button data-gv="wrap" class="${S.gv==='wrap'?'on':''}">Mates Wrapped</button></div>`;
@@ -1185,6 +1253,7 @@ document.addEventListener('click',e=>{
   if((x=q('[data-range]')))return S.range=+x.dataset.range,save(),render();
   if((x=q('[data-cheer]')))return cheer(x.dataset.cheer);
   if((x=q('[data-wo]')))return wrapOff+=+x.dataset.wo,render();
+  if(q('[data-wrep]'))return openStory();
   if((x=q('[data-gv]')))return S.gv=x.dataset.gv,render();
   if(q('#cs'))return sendMsg();
   if((x=q('[data-delm]')))return fb.ok&&fb.rt.ref('chat/general/'+x.dataset.delm).remove().catch(()=>toast('No se pudo borrar'));
