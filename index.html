@@ -958,7 +958,7 @@ function wkSnap(st){
   const sn=sb.map(v=>num(v,604800));return{k:dk(st),t:sn.reduce((a,b)=>a+b,0),s:sn,d:ks.map(k=>num(day(k),86400))};
 }
 const wkSnaps=()=>{const c=wkStart(lnow());return[...Array(9)].map((_,i)=>wkSnap(addD(c,-7*i)))};
-function commView(st){
+function commParts(st){
   const k=dk(st),rows=[];
   members().forEach(m=>{
     const w=m.me?wkSnap(st):(Array.isArray(fb.users[m.id]?.ww)?fb.users[m.id].ww.find(x=>x&&x.k===k):null);
@@ -966,34 +966,34 @@ function commView(st){
     const sb=IDS.map((_,i)=>num(w.s[i],604800));
     rows.push({id:m.id,me:m.me,nick:m.nick,color:m.color,s:sb,t:sb.reduce((a,b)=>a+b,0),d:[...Array(7)].map((_,i)=>num(w.d&&w.d[i],86400))});
   });
-  const head=`<div class="gh" style="margin:14px 0 0">🌍 La comunidad esta semana</div>`;
-  if(!fb.ok)return head+`<div class="card empty">Sin conexión: los datos de la comunidad no están disponibles.</div>`;
-  if(!rows.length)return head+`<div class="card empty">${wrapOff>8?'Solo se guardan las últimas semanas.':'Aún no hay datos de la comunidad para esta semana.'}<br><small>Aparecen cuando cada persona pausa el cronómetro o cierra la app.</small></div>`;
+  if(!fb.ok||!rows.some(r=>!r.me))return null;
   const N=rows.length,tot=rows.reduce((a,r)=>a+r.t,0),act=rows.filter(r=>r.t>0),zero=N-act.length;
-  if(!act.length)return head+`<div class="card empty">Nadie estudió esta semana.<br>La próxima será.</div>`;
+  if(!act.length)return null;
   const avg=tot/act.length,by=[...act].sort((a,b)=>b.t-a.t||a.nick.localeCompare(b.nick)),top=by[0],low=by[by.length-1];
   const pc=(l,r,cap)=>`<div class="card wc"><small class="k">${l}</small><div class="pw"><div class="av" style="background:${r.color}">${esc(r.nick[0].toUpperCase())}</div><b>${esc(r.nick)}${isVer(r.id)?TICK:''}${r.me?' (tú)':''}</b></div><div class="cap">${cap}</div></div>`;
-  let h=head;
+  let h='';
   h+=`<div class="card wc hero"><span class="em">🌍</span><small class="k">Horas de toda la comunidad</small><div class="big" style="font-size:34px">${hm(tot)}</div><div class="cap">${act.length} de ${N} ${N===1?'persona estudió':'personas estudiaron'} · media de ${hm(avg)} por estudiante${tot>=86400?`<br>Son ${fmtN(tot/86400)} días seguidos sin parar`:''}</div></div>`;
   /* quién más y menos */
-  h+=act.length>1?`<div class="w2">${pc('Quien más estudió',top,hm(top.t))}${pc('Quien menos estudió',low,hm(low.t)+(zero?`<br>${zero} ${zero===1?'persona no estudió':'personas no estudiaron'} nada`:''))}</div>`
-    :pc('Quien más estudió',top,hm(top.t)+(zero?` · ${zero} ${zero===1?'persona no estudió':'personas no estudiaron'} nada`:''));
+  h+=act.length>1?`<div class="w2">${pc('Comunidad · quien más estudió',top,hm(top.t))}${pc('Comunidad · quien menos estudió',low,hm(low.t)+(zero?`<br>${zero} ${zero===1?'persona no estudió':'personas no estudiaron'} nada`:''))}</div>`
+    :pc('Comunidad · quien más estudió',top,hm(top.t)+(zero?` · ${zero} ${zero===1?'persona no estudió':'personas no estudiaron'} nada`:''));
   /* tu puesto */
   const me=rows.find(r=>r.me);
   if(me){
     const pos=1+rows.filter(r=>r.t>me.t).length,md=pos<=3&&me.t>0?['🥇','🥈','🥉'][pos-1]+' ':'',df=me.t>0?Math.round((me.t-avg)/avg*100):0;
     h+=`<div class="card wc"><span class="em">📍</span><small class="k">Tu puesto en la comunidad</small><div class="big">${md}${pos}.º de ${N}</div><div class="cap">${me.t?(Math.abs(df)<3?'Justo en la media de la comunidad':`Estudiaste un ${Math.abs(df)}% ${df>0?'más':'menos'} que la media`)+` · aportaste el ${fmtN(me.t/tot*100)}% de las horas`:'Esta semana no estudiaste: te toca remontar'}</div></div>`;
   }
+  h+='\u0001';
   /* asignaturas */
   const sb=IDS.map((id,i)=>({id,i,t:rows.reduce((a,r)=>a+r.s[i],0)})),so=[...sb].sort((a,b)=>b.t-a.t),st1=so[0],st2=so[so.length-1],pr=x=>fmtN(x.t/tot*100)+'%';
-  h+=`<div class="w2"><div class="card wc"><small class="k">Más estudiada</small><div class="big" style="font-size:18px;color:${SUBJ[st1.id].c}">${esc(SUBJ[st1.id].n)}</div><div class="cap">${hm(st1.t)} · ${pr(st1)}</div></div><div class="card wc"><small class="k">Menos estudiada</small><div class="big" style="font-size:18px;color:${SUBJ[st2.id].c}">${esc(SUBJ[st2.id].n)}</div><div class="cap">${hm(st2.t)} · ${pr(st2)}</div></div></div>`;
-  h+=`<div class="card wc"><small class="k">Reparto por asignatura</small><div class="split">${sb.filter(x=>x.t>0).map(x=>`<i style="width:${x.t/tot*100}%;background:${SUBJ[x.id].c}"></i>`).join('')}</div><div class="cap" style="margin-top:8px">${so.map(x=>`<span style="color:${SUBJ[x.id].c}">●</span> ${esc(SUBJ[x.id].n)} ${pr(x)}`).join(' · ')}</div></div>`;
+  h+=`<div class="w2"><div class="card wc"><small class="k">Comunidad · más estudiada</small><div class="big" style="font-size:18px;color:${SUBJ[st1.id].c}">${esc(SUBJ[st1.id].n)}</div><div class="cap">${hm(st1.t)} · ${pr(st1)}</div></div><div class="card wc"><small class="k">Comunidad · menos estudiada</small><div class="big" style="font-size:18px;color:${SUBJ[st2.id].c}">${esc(SUBJ[st2.id].n)}</div><div class="cap">${hm(st2.t)} · ${pr(st2)}</div></div></div>`;
+  h+=`<div class="card wc"><small class="k">Comunidad · reparto por asignatura</small><div class="split">${sb.filter(x=>x.t>0).map(x=>`<i style="width:${x.t/tot*100}%;background:${SUBJ[x.id].c}"></i>`).join('')}</div><div class="cap" style="margin-top:8px">${so.map(x=>`<span style="color:${SUBJ[x.id].c}">●</span> ${esc(SUBJ[x.id].n)} ${pr(x)}`).join(' · ')}</div></div>`;
   /* campeones por asignatura */
-  h+=`<div class="card wc"><span class="em">🏅</span><small class="k">Campeones por asignatura</small>${sb.map(x=>{const b=[...rows].sort((p,q)=>q.s[x.i]-p.s[x.i]||p.nick.localeCompare(q.nick))[0];return `<div class="chr"><span style="color:${SUBJ[x.id].c};font-weight:600">${esc(SUBJ[x.id].n)}</span><span>${b.s[x.i]>0?esc(b.nick)+(b.me?' (tú)':'')+' · '+hm(b.s[x.i]):'Nadie'}</span></div>`}).join('')}</div>`;
+  h+=`<div class="card wc"><span class="em">🏅</span><small class="k">Comunidad · campeones por asignatura</small>${sb.map(x=>{const b=[...rows].sort((p,q)=>q.s[x.i]-p.s[x.i]||p.nick.localeCompare(q.nick))[0];return `<div class="chr"><span style="color:${SUBJ[x.id].c};font-weight:600">${esc(SUBJ[x.id].n)}</span><span>${b.s[x.i]>0?esc(b.nick)+(b.me?' (tú)':'')+' · '+hm(b.s[x.i]):'Nadie'}</span></div>`}).join('')}</div>`;
+  h+='\u0001';
   /* días */
   const dd=[...Array(7)].map((_,i)=>({n:DAYN[addD(st,i).getDay()],t:rows.reduce((a,r)=>a+r.d[i],0)})),dso=[...dd].sort((a,b)=>b.t-a.t),dz=dd.filter(x=>!x.t),dlo=dso[dso.length-1];
-  h+=`<div class="w2"><div class="card wc"><small class="k">Día más fuerte</small><div class="big" style="font-size:20px">${cap1(dso[0].n)}</div><div class="cap">${hm(dso[0].t)} entre todos</div></div><div class="card wc"><small class="k">Día más flojo</small><div class="big" style="font-size:20px">${dz.length>1?dz.length+' días':cap1(dlo.n)}</div><div class="cap">${dz.length>1?'Sin estudiar: '+dz.map(x=>x.n).join(', '):dz.length?'Nadie estudió':hm(dlo.t)+' entre todos'}</div></div></div>`;
-  return h+`<div class="hint">Cuentan quienes tienen nombre en la comunidad. Los datos se actualizan cuando cada persona pausa el cronómetro o cierra la app.</div>`;
+  h+=`<div class="w2"><div class="card wc"><small class="k">Comunidad · día más fuerte</small><div class="big" style="font-size:20px">${cap1(dso[0].n)}</div><div class="cap">${hm(dso[0].t)} entre todos</div></div><div class="card wc"><small class="k">Comunidad · día más flojo</small><div class="big" style="font-size:20px">${dz.length>1?dz.length+' días':cap1(dlo.n)}</div><div class="cap">${dz.length>1?'Sin estudiar: '+dz.map(x=>x.n).join(', '):dz.length?'Nadie estudió':hm(dlo.t)+' entre todos'}</div></div></div>`;
+  const[a,b,c]=h.split('\u0001');return{a,b,c};
 }
 function wrapView(){
   const now=new Date(),cs=wkStart(lnow()),ut=addD(cs,6);ut.setHours(13,50,0,0);const unl=now>=ut,latest=unl?cs:addD(cs,-7);
@@ -1006,9 +1006,10 @@ function wrapView(){
   }
   h+=`<div class="wnav"><button data-wo="1" aria-label="Semana anterior" ${wrapOff>=7?'disabled':''}>‹</button><div style="text-align:center"><b>Semana del ${dm(st)} al ${dm(en)}</b><div class="hint" style="margin:0">Sábado a viernes</div></div><button data-wo="-1" aria-label="Semana siguiente" ${wrapOff<=0?'disabled':''}>›</button></div>`;
   const D=wrapData(st);
-  if(!D.total)return h+`<div class="card empty">No estudiaste esta semana, así que no hay Wrapped.<br>La próxima será.</div><div class="wr" style="margin-top:6px">${commView(st)}</div>`;
-  const act=D.days.filter(x=>x.t>0).length;
+  if(!D.total)return h+`<div class="card empty">No estudiaste esta semana, así que no hay Wrapped.<br>La próxima será.</div>`;
+  const act=D.days.filter(x=>x.t>0).length,C=commParts(st);
   h+=`<div class="wr"><div class="card wc hero"><span class="em">🎓</span><small class="k">Tu semana en números</small><div class="big" style="font-size:34px">${hm(D.total)}</div><div class="cap">Estudiaste ${act} de 7 días · media de ${hm(D.total/7)} al día</div></div>`;
+  if(C)h+=C.a;
   /* franja del día más activa */
   if(D.hrs){
     let bs=0,bv=-1;for(let s=0;s<=21;s++){const v=D.hrs[s]+D.hrs[s+1]+D.hrs[s+2];if(v>bv){bv=v;bs=s}}
@@ -1024,10 +1025,12 @@ function wrapView(){
   /* asignaturas */
   const so=[...D.sub].sort((a,b)=>b.t-a.t),top=so[0],low=so[so.length-1];
   h+=`<div class="w2"><div class="card wc"><small class="k">Más estudiada</small><div class="big" style="font-size:18px;color:${SUBJ[top.id].c}">${esc(SUBJ[top.id].n)}</div><div class="cap">${hm(top.t)}</div></div><div class="card wc"><small class="k">Menos estudiada</small><div class="big" style="font-size:18px;color:${SUBJ[low.id].c}">${esc(SUBJ[low.id].n)}</div><div class="cap">${hm(low.t)}</div></div></div>`;
+  if(C)h+=C.b;
   /* días */
   const ds=[...D.days].sort((a,b)=>b.t-a.t),bd=ds[0],zero=D.days.filter(x=>!x.t),wd=ds[ds.length-1];
   const lowBig=zero.length>1?zero.length+' días':cap1(wd.n),lowCap=zero.length>1?'Sin estudiar: '+zero.map(x=>x.n).join(', '):zero.length?'Descanso total (0 min)':hm(wd.t);
   h+=`<div class="w2"><div class="card wc"><small class="k">Día más productivo</small><div class="big" style="font-size:20px">${cap1(bd.n)}</div><div class="cap">${hm(bd.t)}</div></div><div class="card wc"><small class="k">Día menos productivo</small><div class="big" style="font-size:20px">${lowBig}</div><div class="cap">${lowCap}</div></div></div>`;
+  if(C)h+=C.c;
   /* sesión más larga */
   if(D.lg){
     const dt=D.lg.at?new Date(D.lg.at):null;
@@ -1062,8 +1065,7 @@ function wrapView(){
     const hash=[...D.k].reduce((a,c)=>a+c.charCodeAt(0),0),e=cand[hash%cand.length],n=e[1](D.total);
     h+=`<div class="card wc"><span class="em">${e[0]}</span><small class="k">Equivalencia absurda</small><div class="big" style="font-size:19px">Estudiar ${hm(D.total)} equivale a ${e[2](fmtN(n))}.</div></div>`;
   }
-  h+=commView(st);
-  return h+'</div><div class="hint">El Wrapped se desbloquea cada viernes a las 13:50 y cuenta de sábado a viernes.</div>';
+  return h+'</div><div class="hint">El Wrapped se desbloquea cada viernes a las 13:50 y cuenta de sábado a viernes.'+(C?' Los datos de la comunidad se actualizan cuando cada persona pausa el cronómetro o cierra la app.':'')+'</div>';
 }
 
 function group(){
