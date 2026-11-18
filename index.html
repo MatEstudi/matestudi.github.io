@@ -249,7 +249,7 @@ nav button{font-size:14px}
 .cw .el{color:#fff;font-size:12px;line-height:1.2}
 .cw small{font-size:10px;line-height:1.2;opacity:.92}
 .ch{position:absolute;left:4px;right:4px;top:108px;height:8px;background:#1e293b;border-radius:3px}
-.wl{position:absolute;bottom:0;width:24px;height:24px;animation:spin .9s linear infinite}
+.wl{position:absolute;bottom:0;width:24px;height:24px;animation:spin .9s linear infinite;will-change:transform}
 .w1{left:12px}.w2{right:12px}
 @keyframes spin{to{transform:rotate(360deg)}}
 .loco{width:210px}
@@ -264,8 +264,8 @@ nav button{font-size:14px}
 .catch{position:absolute;left:180px;top:100px;width:30px;height:24px;background:#1e293b;clip-path:polygon(0 0,100% 100%,0 100%)}
 .loco .wl{width:34px;height:34px}
 .loco .w1{left:14px;right:auto}.loco .w2{left:64px;right:auto}.loco .w3{left:136px;right:auto;width:26px;height:26px}
-.rod{position:absolute;left:31px;top:109px;width:50px;height:4px;background:#cbd5e1;border-radius:2px;animation:rod .9s linear infinite;z-index:2}
-@keyframes rod{0%{transform:translate(0,-11px)}25%{transform:translate(11px,0)}50%{transform:translate(0,11px)}75%{transform:translate(-11px,0)}}
+.rod{position:absolute;left:31px;top:109px;width:50px;height:4px;background:#cbd5e1;border-radius:2px;animation:rod .9s linear infinite;z-index:2;will-change:transform}
+@keyframes rod{from{transform:rotate(0deg) translateY(-10.6px) rotate(0deg)}to{transform:rotate(360deg) translateY(-10.6px) rotate(-360deg)}}
 .smk{position:absolute;left:159px;top:6px;width:0;height:0}
 .pf{position:absolute;left:-7px;top:-7px;width:14px;height:14px;border-radius:50%;background:var(--mut);opacity:0;animation:puff 2.4s ease-out infinite}
 .pf:nth-child(2){animation-delay:.8s}.pf:nth-child(3){animation-delay:1.6s}
@@ -900,7 +900,7 @@ function friend(m){
 const HAT='<svg class="hat" viewBox="0 0 34 24" aria-label="Sombrero de maquinista"><path d="M5 15C5 6 11 2 17 2s12 4 12 13z" fill="#1e293b"/><rect x="4" y="12" width="26" height="4" rx="1.5" fill="#fbbf24"/><path d="M3 16h28c0 4-4 6-14 6S3 20 3 16z" fill="#0f172a"/><circle cx="17" cy="8" r="2.4" fill="#fbbf24"/></svg>';
 const WHEEL=c=>`<svg class="wl ${c}" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#1e293b" stroke="#64748b" stroke-width="1.5"/><path d="M12 2v20M2 12h20" stroke="#94a3b8" stroke-width="1.4"/><circle cx="12" cy="12" r="3" fill="#94a3b8"/><circle cx="12" cy="4.5" r="1.8" fill="#fbbf24"/></svg>`;
 let trainR=0;
-function fixTrain(){const t=document.querySelector('.train');if(t)t.scrollLeft=Math.max(0,t.scrollWidth-t.clientWidth-trainR)}
+function fixTrain(){const t=document.querySelector('.train');if(!t)return;t.scrollLeft=Math.max(0,t.scrollWidth-t.clientWidth-trainR);try{t.getAnimations({subtree:true}).forEach(a=>{a.startTime=0})}catch(e){}}
 document.addEventListener('scroll',e=>{const t=e.target;if(t&&t.classList&&t.classList.contains('train'))trainR=Math.max(0,t.scrollWidth-t.clientWidth-t.scrollLeft)},true);
 function trainBlock(ms,all){
   const AN=SUBJ.analisi.n,top=[...all].sort((a,b)=>b.weekly-a.weekly)[0],topId=top&&top.weekly>0?top.id:null;
