@@ -283,6 +283,8 @@ nav button{font-size:14px}
 .wc.hero{background:linear-gradient(135deg,var(--acc),color-mix(in srgb,var(--acc) 55%,#ec4899));color:#fff;border:0}.wc.hero .cap,.wc.hero small.k{color:rgba(255,255,255,.85)}
 .hrs{display:flex;gap:2px;align-items:flex-end;height:46px;margin-top:12px}.hrs i{flex:1;background:var(--acc);border-radius:3px;min-height:2px;opacity:.3}.hrs i.on{opacity:1}
 .hrl{display:flex;justify-content:space-between;color:var(--mut);font-size:10px;margin-top:3px}
+.pw{display:flex;align-items:center;gap:8px;margin:8px 0 4px}.pw .av{width:32px;height:32px}.pw b{font:700 16px/1.2 var(--f1);overflow-wrap:anywhere}
+.chr{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:8px 0;border-top:1px solid var(--line);font-size:14px}.chr:first-of-type{margin-top:8px}.chr span:last-child{text-align:right;overflow-wrap:anywhere}
 .split{display:flex;height:10px;border-radius:9px;overflow:hidden;background:var(--line);margin-top:12px}.split i{display:block;height:100%}
 .lockc{position:relative;overflow:hidden;margin-bottom:14px;text-align:center;border-color:var(--acc);background:linear-gradient(180deg,var(--soft),var(--card))}
 .lockc::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 0,var(--soft),transparent 65%);animation:lglow 3s ease-in-out infinite;pointer-events:none}
@@ -583,12 +585,13 @@ function sync(force,final){
   if(ps!==lastPrSig){lastPrSig=ps;
     fb.rt.ref('presence/'+fb.uid).update({online:true,lastSeen:firebase.database.ServerValue.TIMESTAMP,nickname:S.nick,avatarColor:S.color,active:a,since:S.run?now+off-S.cur*1000:null}).catch(()=>{})}
   const sk=streakCur(),bs=streakBest(sk.n);
-  const fs=JSON.stringify([S.nick,S.color,Math.floor(st.total/60),Math.floor(st.today/60),Math.floor(st.week/60),sk.n,sk.end,bs]);
+  let ww=[];try{ww=wkSnaps()}catch(e){}
+  const fs=JSON.stringify([S.nick,S.color,Math.floor(st.total/60),Math.floor(st.today/60),Math.floor(st.week/60),sk.n,sk.end,bs,ww.map(w=>[w.k,Math.floor(w.t/60)])]);
   if(fs===lastFsSig)return;
   const prof=S.nick+S.color,due=lastFs===0||final||prof!==lastProf||(!S.run&&force)||now-lastFs>=300000;
   if(!due)return;
   lastFs=now;lastFsSig=fs;lastProf=prof;
-  writeProfile({nickname:S.nick,avatarColor:S.color,totalSeconds:st.total,todaySeconds:st.today,todayDateKey:st.todayKey,weeklySeconds:st.week,weekStartKey:st.weekKey,streak:sk.n,streakEnd:sk.end,bestStreak:bs,updatedAt:now+off}).catch(()=>{});
+  writeProfile({nickname:S.nick,avatarColor:S.color,totalSeconds:st.total,todaySeconds:st.today,todayDateKey:st.todayKey,weeklySeconds:st.week,weekStartKey:st.weekKey,streak:sk.n,streakEnd:sk.end,bestStreak:bs,ww,updatedAt:now+off}).catch(()=>{});
 }
 /* ---------- Cuentas: nombre de usuario (único) + contraseña ----------
    Firebase Auth con un correo interno <nombre>@mathstudy.app (nunca se envía nada a esa dirección).
@@ -949,6 +952,49 @@ function wrapData(st){
   const wt={};Object.keys(S.hist).forEach(h=>{const[y,m,d]=h.split('-').map(Number),wk=dk(wkStart(new Date(y,m-1,d)));wt[wk]=(wt[wk]||0)+S.hist[h].t});
   return{days,total,sub,hrs,f,p,lg,k,ss,prev,psub,wt};
 }
+/* ---------- Mates Wrapped: comunidad. Cada perfil publica ww = resumen de sus últimas 9 semanas (sábado a viernes) ---------- */
+function wkSnap(st){
+  const ks=[...Array(7)].map((_,i)=>dk(addD(st,i))),sb=IDS.map(i=>ks.reduce((a,k)=>a+(S.hist[k]?.[i]||0),0));
+  const sn=sb.map(v=>num(v,604800));return{k:dk(st),t:sn.reduce((a,b)=>a+b,0),s:sn,d:ks.map(k=>num(day(k),86400))};
+}
+const wkSnaps=()=>{const c=wkStart(lnow());return[...Array(9)].map((_,i)=>wkSnap(addD(c,-7*i)))};
+function commView(st){
+  const k=dk(st),rows=[];
+  members().forEach(m=>{
+    const w=m.me?wkSnap(st):(Array.isArray(fb.users[m.id]?.ww)?fb.users[m.id].ww.find(x=>x&&x.k===k):null);
+    if(!w||!Array.isArray(w.s))return;
+    const sb=IDS.map((_,i)=>num(w.s[i],604800));
+    rows.push({id:m.id,me:m.me,nick:m.nick,color:m.color,s:sb,t:sb.reduce((a,b)=>a+b,0),d:[...Array(7)].map((_,i)=>num(w.d&&w.d[i],86400))});
+  });
+  const head=`<div class="gh" style="margin:14px 0 0">🌍 La comunidad esta semana</div>`;
+  if(!fb.ok)return head+`<div class="card empty">Sin conexión: los datos de la comunidad no están disponibles.</div>`;
+  if(!rows.length)return head+`<div class="card empty">${wrapOff>8?'Solo se guardan las últimas semanas.':'Aún no hay datos de la comunidad para esta semana.'}<br><small>Aparecen cuando cada persona pausa el cronómetro o cierra la app.</small></div>`;
+  const N=rows.length,tot=rows.reduce((a,r)=>a+r.t,0),act=rows.filter(r=>r.t>0),zero=N-act.length;
+  if(!act.length)return head+`<div class="card empty">Nadie estudió esta semana.<br>La próxima será.</div>`;
+  const avg=tot/act.length,by=[...act].sort((a,b)=>b.t-a.t||a.nick.localeCompare(b.nick)),top=by[0],low=by[by.length-1];
+  const pc=(l,r,cap)=>`<div class="card wc"><small class="k">${l}</small><div class="pw"><div class="av" style="background:${r.color}">${esc(r.nick[0].toUpperCase())}</div><b>${esc(r.nick)}${isVer(r.id)?TICK:''}${r.me?' (tú)':''}</b></div><div class="cap">${cap}</div></div>`;
+  let h=head;
+  h+=`<div class="card wc hero"><span class="em">🌍</span><small class="k">Horas de toda la comunidad</small><div class="big" style="font-size:34px">${hm(tot)}</div><div class="cap">${act.length} de ${N} ${N===1?'persona estudió':'personas estudiaron'} · media de ${hm(avg)} por estudiante${tot>=86400?`<br>Son ${fmtN(tot/86400)} días seguidos sin parar`:''}</div></div>`;
+  /* quién más y menos */
+  h+=act.length>1?`<div class="w2">${pc('Quien más estudió',top,hm(top.t))}${pc('Quien menos estudió',low,hm(low.t)+(zero?`<br>${zero} ${zero===1?'persona no estudió':'personas no estudiaron'} nada`:''))}</div>`
+    :pc('Quien más estudió',top,hm(top.t)+(zero?` · ${zero} ${zero===1?'persona no estudió':'personas no estudiaron'} nada`:''));
+  /* tu puesto */
+  const me=rows.find(r=>r.me);
+  if(me){
+    const pos=1+rows.filter(r=>r.t>me.t).length,md=pos<=3&&me.t>0?['🥇','🥈','🥉'][pos-1]+' ':'',df=me.t>0?Math.round((me.t-avg)/avg*100):0;
+    h+=`<div class="card wc"><span class="em">📍</span><small class="k">Tu puesto en la comunidad</small><div class="big">${md}${pos}.º de ${N}</div><div class="cap">${me.t?(Math.abs(df)<3?'Justo en la media de la comunidad':`Estudiaste un ${Math.abs(df)}% ${df>0?'más':'menos'} que la media`)+` · aportaste el ${fmtN(me.t/tot*100)}% de las horas`:'Esta semana no estudiaste: te toca remontar'}</div></div>`;
+  }
+  /* asignaturas */
+  const sb=IDS.map((id,i)=>({id,i,t:rows.reduce((a,r)=>a+r.s[i],0)})),so=[...sb].sort((a,b)=>b.t-a.t),st1=so[0],st2=so[so.length-1],pr=x=>fmtN(x.t/tot*100)+'%';
+  h+=`<div class="w2"><div class="card wc"><small class="k">Más estudiada</small><div class="big" style="font-size:18px;color:${SUBJ[st1.id].c}">${esc(SUBJ[st1.id].n)}</div><div class="cap">${hm(st1.t)} · ${pr(st1)}</div></div><div class="card wc"><small class="k">Menos estudiada</small><div class="big" style="font-size:18px;color:${SUBJ[st2.id].c}">${esc(SUBJ[st2.id].n)}</div><div class="cap">${hm(st2.t)} · ${pr(st2)}</div></div></div>`;
+  h+=`<div class="card wc"><small class="k">Reparto por asignatura</small><div class="split">${sb.filter(x=>x.t>0).map(x=>`<i style="width:${x.t/tot*100}%;background:${SUBJ[x.id].c}"></i>`).join('')}</div><div class="cap" style="margin-top:8px">${so.map(x=>`<span style="color:${SUBJ[x.id].c}">●</span> ${esc(SUBJ[x.id].n)} ${pr(x)}`).join(' · ')}</div></div>`;
+  /* campeones por asignatura */
+  h+=`<div class="card wc"><span class="em">🏅</span><small class="k">Campeones por asignatura</small>${sb.map(x=>{const b=[...rows].sort((p,q)=>q.s[x.i]-p.s[x.i]||p.nick.localeCompare(q.nick))[0];return `<div class="chr"><span style="color:${SUBJ[x.id].c};font-weight:600">${esc(SUBJ[x.id].n)}</span><span>${b.s[x.i]>0?esc(b.nick)+(b.me?' (tú)':'')+' · '+hm(b.s[x.i]):'Nadie'}</span></div>`}).join('')}</div>`;
+  /* días */
+  const dd=[...Array(7)].map((_,i)=>({n:DAYN[addD(st,i).getDay()],t:rows.reduce((a,r)=>a+r.d[i],0)})),dso=[...dd].sort((a,b)=>b.t-a.t),dz=dd.filter(x=>!x.t),dlo=dso[dso.length-1];
+  h+=`<div class="w2"><div class="card wc"><small class="k">Día más fuerte</small><div class="big" style="font-size:20px">${cap1(dso[0].n)}</div><div class="cap">${hm(dso[0].t)} entre todos</div></div><div class="card wc"><small class="k">Día más flojo</small><div class="big" style="font-size:20px">${dz.length>1?dz.length+' días':cap1(dlo.n)}</div><div class="cap">${dz.length>1?'Sin estudiar: '+dz.map(x=>x.n).join(', '):dz.length?'Nadie estudió':hm(dlo.t)+' entre todos'}</div></div></div>`;
+  return h+`<div class="hint">Cuentan quienes tienen nombre en la comunidad. Los datos se actualizan cuando cada persona pausa el cronómetro o cierra la app.</div>`;
+}
 function wrapView(){
   const now=new Date(),cs=wkStart(lnow()),ut=addD(cs,6);ut.setHours(13,50,0,0);const unl=now>=ut,latest=unl?cs:addD(cs,-7);
   wrapOff=Math.min(7,Math.max(0,wrapOff));
@@ -960,7 +1006,7 @@ function wrapView(){
   }
   h+=`<div class="wnav"><button data-wo="1" aria-label="Semana anterior" ${wrapOff>=7?'disabled':''}>‹</button><div style="text-align:center"><b>Semana del ${dm(st)} al ${dm(en)}</b><div class="hint" style="margin:0">Sábado a viernes</div></div><button data-wo="-1" aria-label="Semana siguiente" ${wrapOff<=0?'disabled':''}>›</button></div>`;
   const D=wrapData(st);
-  if(!D.total)return h+`<div class="card empty">No estudiaste esta semana, así que no hay Wrapped.<br>La próxima será.</div>`;
+  if(!D.total)return h+`<div class="card empty">No estudiaste esta semana, así que no hay Wrapped.<br>La próxima será.</div><div class="wr" style="margin-top:6px">${commView(st)}</div>`;
   const act=D.days.filter(x=>x.t>0).length;
   h+=`<div class="wr"><div class="card wc hero"><span class="em">🎓</span><small class="k">Tu semana en números</small><div class="big" style="font-size:34px">${hm(D.total)}</div><div class="cap">Estudiaste ${act} de 7 días · media de ${hm(D.total/7)} al día</div></div>`;
   /* franja del día más activa */
@@ -1016,6 +1062,7 @@ function wrapView(){
     const hash=[...D.k].reduce((a,c)=>a+c.charCodeAt(0),0),e=cand[hash%cand.length],n=e[1](D.total);
     h+=`<div class="card wc"><span class="em">${e[0]}</span><small class="k">Equivalencia absurda</small><div class="big" style="font-size:19px">Estudiar ${hm(D.total)} equivale a ${e[2](fmtN(n))}.</div></div>`;
   }
+  h+=commView(st);
   return h+'</div><div class="hint">El Wrapped se desbloquea cada viernes a las 13:50 y cuenta de sábado a viernes.</div>';
 }
 
