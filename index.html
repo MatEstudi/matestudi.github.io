@@ -301,6 +301,35 @@ button.chr:hover{border-color:var(--acc)}
 .chr.ro{border-style:dashed}
 .tch{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:10px}.tch:empty{display:none}
 .chr .cn{font:600 13px var(--f2);max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bg0{background:linear-gradient(135deg,#64748b,#475569)}
+.bg1{background:radial-gradient(circle at 85% 10%,rgba(255,255,255,.3),transparent 45%),linear-gradient(135deg,#38bdf8,#2563eb 60%,#1e3a8a)}
+.bg2{background:radial-gradient(circle at 15% 90%,rgba(251,191,36,.4),transparent 40%),radial-gradient(circle at 85% 10%,rgba(255,255,255,.32),transparent 45%),radial-gradient(rgba(255,255,255,.2) 1.2px,transparent 1.5px) 0 0/16px 16px,linear-gradient(135deg,#a78bfa,#7c3aed 50%,#db2777)}
+.bg3{background:radial-gradient(rgba(255,255,255,.35) 1px,transparent 1.5px) 0 0/22px 22px,linear-gradient(120deg,#fde047,#f97316,#ec4899,#8b5cf6,#38bdf8,#fde047);background-size:22px 22px,300% 300%;animation:rkshift 9s linear infinite}
+.rk{position:relative;overflow:hidden;color:#fff;border:0;text-align:center;padding:28px 22px}
+.rk>*{position:relative;z-index:1}
+.rk::before{content:attr(data-s);position:absolute;right:-8px;bottom:-34px;font:700 190px/1 var(--f1);opacity:.14;z-index:0}
+.rk.bg3{box-shadow:0 0 30px rgba(249,115,22,.45),0 0 60px rgba(139,92,246,.25)}
+.rk.bg3::after{content:'✦ ✧ ✦ ✧ ✦';position:absolute;left:0;right:0;top:10px;letter-spacing:22px;font-size:14px;opacity:.8;animation:rktw 2.4s ease-in-out infinite alternate}
+.rk small.k{display:block;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;opacity:.85}
+.rk .sym{font:700 84px/1 var(--f1);margin:10px 0 4px;text-shadow:0 4px 24px rgba(0,0,0,.25)}
+.rk .big{font:700 26px var(--f1)}.rk .cap{opacity:.9;font-size:14px;margin-top:4px}
+.rkp{height:9px;border-radius:9px;background:rgba(255,255,255,.28);margin:16px auto 0;max-width:340px;overflow:hidden}.rkp i{display:block;height:100%;background:#fff;border-radius:9px;transition:width .5s}
+.rkl{display:grid;gap:10px}
+.rkr{display:flex;align-items:center;gap:14px;padding:14px 16px}.rkr.cu{border-color:var(--acc)}
+.rkr .n{flex:1;min-width:0}.rkr .n b{display:block}.rkr .n small{color:var(--mut)}
+.rkb{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;color:#fff;font:700 26px var(--f1);flex:none;animation:none}
+.rkr.rlk .rkb{filter:saturate(.25) brightness(.9);opacity:.7}
+.rks{font-size:13px;font-weight:600;color:var(--mut);flex:none}.rkr.cu .rks{color:var(--acc)}
+@keyframes rkshift{to{background-position:22px 22px,300% 0}}
+@keyframes rktw{from{opacity:.35}to{opacity:.95}}
+@media(prefers-reduced-motion:reduce){.bg3,.rk.bg3::after{animation:none}}
+.rkt{display:inline-block;margin-left:4px;font:700 1.2em/1 var(--f1);vertical-align:baseline;white-space:nowrap}
+.rkt.r0{color:var(--mut)}
+.rkt.r1{background:linear-gradient(135deg,#38bdf8,#2563eb);-webkit-background-clip:text;background-clip:text;color:transparent}
+.rkt.r2{background:linear-gradient(135deg,#a78bfa,#ec4899);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 3px rgba(168,85,247,.8)) drop-shadow(0 0 7px rgba(236,72,153,.45))}
+.rkt.r3{background:linear-gradient(120deg,#fde047,#f97316,#ec4899,#8b5cf6,#38bdf8,#fde047);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 3px rgba(253,224,71,.95)) drop-shadow(0 0 8px rgba(249,115,22,.8)) drop-shadow(0 0 14px rgba(139,92,246,.55));animation:rkt3 4s linear infinite}
+@keyframes rkt3{to{background-position:300% 0}}
+@media(prefers-reduced-motion:reduce){.rkt.r3{animation:none}}
 </style>
 </head>
 <body>
@@ -316,6 +345,7 @@ button.chr:hover{border-color:var(--acc)}
     <button data-v="study">Estudiar</button>
     <button data-v="stats">Estadísticas</button>
     <button data-v="group">Comunidad</button>
+    <button data-v="more">Más</button>
   </nav>
   <main id="main"></main>
 </div>
@@ -347,8 +377,10 @@ function nickErr(n){
   return '';
 }
 const num=(v,max=1e9)=>Math.min(max,Math.max(0,Math.floor(+v||0)));
-const dk=(d=new Date())=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-const monday=()=>{const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-((d.getDay()+6)%7));return d};
+/* El día empieza a las 4:00 y termina a las 4:00 del siguiente: lnow() devuelve la fecha 'lógica' (hora actual − 4 h). */
+const DAY_OFF=4*36e5,lnow=(t=Date.now())=>new Date(t-DAY_OFF);
+const dk=(d=lnow())=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const monday=()=>{const d=lnow();d.setHours(0,0,0,0);d.setDate(d.getDate()-((d.getDay()+6)%7));return d};
 const hm=s=>{s=Math.floor(s);const h=Math.floor(s/3600),m=Math.floor(s%3600/60);return h?`${h} h ${m} min`:`${m} min`};
 const clock=s=>{s=Math.max(0,Math.floor(s));const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60,p=n=>String(n).padStart(2,'0');return (h?h+':':'')+p(m)+':'+p(x)};
 const day=k=>S.hist[k]?.t||0;
@@ -414,7 +446,7 @@ function stats(){
 /* Racha: un día suma si se estudia al menos 1 hora (QUAL). Si hoy aún no llegas a 1 h, la racha no se pierde: cuenta hasta ayer. */
 const QUAL=3600,dias=n=>n+(n===1?' día':' días');
 function streakCur(){
-  let n=0;const d=new Date();if(day(dk(d))<QUAL)d.setDate(d.getDate()-1);
+  let n=0;const d=lnow();if(day(dk(d))<QUAL)d.setDate(d.getDate()-1);
   const end=dk(d);while(day(dk(d))>=QUAL){n++;d.setDate(d.getDate()-1)}
   return{n,end:n?end:''};
 }
@@ -427,7 +459,7 @@ function streakBest(cur){
 }
 /* La racha guardada de otra persona solo vale si su último día contado es hoy o ayer. */
 function liveStreak(u){
-  const y=new Date();y.setDate(y.getDate()-1);
+  const y=lnow();y.setDate(y.getDate()-1);
   return u.streakEnd===dk()||u.streakEnd===dk(y)?num(u.streak,36500):0;
 }
 const FL='<svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><use href="#flame"/></svg>';
@@ -510,7 +542,7 @@ function listenUsers(on){
 }
 /* Ánimos: cheers/{destinatario}/{quien animó} = "AAAA-MM-DD". Solo cuentan los de hoy, así que se reinician cada día. Solo se escucha con Amigos abierto. */
 let cheerRef=null,cheerDay='';
-const cheerKey=()=>dk(new Date(sNow()));
+const cheerKey=()=>dk(lnow(sNow()));
 const cheerN=id=>Object.values(fb.cheers[id]||{}).filter(v=>v===cheerKey()).length;
 function listenCheers(on){
   if(!fb.ok)return;
@@ -596,18 +628,18 @@ function study(){
   <div class="hint">${esc(SUBJ[S.sel].n)}: <b id="v-sel"></b> acumuladas</div>`;
 }
 function weekChart(){
-  const ds=[...Array(7)].map((_,i)=>{const d=new Date();d.setDate(d.getDate()-6+i);return d}),vals=ds.map(d=>day(dk(d))),mx=Math.max(3600,...vals);
+  const ds=[...Array(7)].map((_,i)=>{const d=lnow();d.setDate(d.getDate()-6+i);return d}),vals=ds.map(d=>day(dk(d))),mx=Math.max(3600,...vals);
   return `<div class="card"><div class="week">${ds.map((d,i)=>`<div title="${hm(vals[i])}"><i style="height:${vals[i]/mx*100}%"></i>${'DLMXJVS'[d.getDay()===0?0:d.getDay()]}</div>`).join('')}</div></div>`;
 }
 function statsView(){
   const st=stats(),n=S.range,gD=S.goalD*3600,gW=S.goalW*3600;
-  const td=new Date();td.setHours(0,0,0,0);
+  const td=lnow();td.setHours(0,0,0,0);
   const ds=n===7?[...Array(7)].map((_,i)=>{const d=monday();d.setDate(d.getDate()+i);return d})
     :[...Array(new Date(td.getFullYear(),td.getMonth()+1,0).getDate())].map((_,i)=>new Date(td.getFullYear(),td.getMonth(),i+1));
   const N=ds.length,vals=ds.map(d=>day(dk(d))),pastN=ds.filter(d=>d<=td).length,dm1=d=>d.toLocaleDateString('es',{day:'numeric',month:'short'});
   const rl=n===7?`Semana del ${dm1(ds[0])} al ${dm1(ds[6])}`:ds[0].toLocaleDateString('es',{month:'long',year:'numeric'}).replace(/^./,c=>c.toUpperCase());
   const mx=Math.max(gD,...vals),act=vals.filter(v=>v>0),avg=act.length?act.reduce((a,b)=>a+b,0)/act.length:0,hit=vals.filter(v=>v>=gD).length;
-  const rec=Object.values(S.hist).reduce((m,v)=>Math.max(m,v.t),0),rd=7-((new Date().getDay()+6)%7),left=Math.max(0,gW-st.week);
+  const rec=Object.values(S.hist).reduce((m,v)=>Math.max(m,v.t),0),rd=7-((lnow().getDay()+6)%7),left=Math.max(0,gW-st.week);
   const pd=Math.min(100,st.today/gD*100),pw=Math.min(100,st.week/gW*100),tot=Math.max(1,st.total);
   const ses=S.sess.slice(0,6);
   return `<div class="goals">
@@ -636,7 +668,7 @@ function friend(m){
   const st=m.act?`<small class="live">Estudiando ${esc(m.act)}</small>`:m.on?'<small class="live">En línea</small>':`<small>Última conexión ${ago(m.seen)}</small>`;
   const sk=m.streak?`<span class="stk" title="Racha: ${dias(m.streak)} seguidos (mín. 1 h al día)">${FL}${m.streak}</span>`:'';
   return `<div class="card fc ${m.me?'me1':''}${fireCls(m.streak)}" style="${fireVar(m.streak)}">${fireBg(m.streak)}<div class="m0"><div class="av ${m.on?'on':''}" style="background:${m.color}">${esc(m.nick[0].toUpperCase())}</div>
-  <div class="n"><b>${esc(m.nick)}${isVer(m.id)?TICK:''}${m.me?' (tú)':''}</b>${st}</div>${sk}${m.act&&m.since?`<div class="el" data-s="${m.since}" title="Tiempo en esta sesión">${clock((sNow()-m.since)/1000)}</div>`:''}${cheerBtn(m)}</div>
+  <div class="n"><b>${esc(m.nick)}${isVer(m.id)?TICK:''}${rkT(m.total)}${m.me?' (tú)':''}</b>${st}</div>${sk}${m.act&&m.since?`<div class="el" data-s="${m.since}" title="Tiempo en esta sesión">${clock((sNow()-m.since)/1000)}</div>`:''}${cheerBtn(m)}</div>
   <div class="fs"><div><b>${hm(m.daily)}</b><span>Hoy</span></div><div><b>${hm(m.weekly)}</b><span>Semana</span></div><div><b>${hm(m.total)}</b><span>Total</span></div></div></div>`;
 }
 
@@ -652,16 +684,33 @@ function trainBlock(ms,all){
   const pas=ms.filter(m=>m.act===AN);if(!pas.length)return '';
   const drv=pas.find(m=>m.id===topId),rest=pas.filter(m=>m!==drv).sort((a,b)=>a.total-b.total);
   const cell=(m,d,x)=>`<div class="av ${m.on?'on':''}" style="background:${m.color}">${esc(m.nick[0].toUpperCase())}${d?HAT:''}</div>
-    <b>${esc(m.nick)}${isVer(m.id)?TICK:''}${m.me?' (tú)':''}</b>${m.since?`<div class="el" data-s="${m.since}">${clock((sNow()-m.since)/1000)}</div>`:''}<small>${x}</small>`;
+    <b>${esc(m.nick)}${isVer(m.id)?TICK:''}${rkT(m.total)}${m.me?' (tú)':''}</b>${m.since?`<div class="el" data-s="${m.since}">${clock((sNow()-m.since)/1000)}</div>`:''}<small>${x}</small>`;
   const wagons=rest.map((m,k)=>`<div class="car" style="--i:${k}"><div class="cb"><div class="cw">${cell(m,false,'Total '+hm(m.total))}</div></div><i class="ch"></i>${WHEEL('w1')}${WHEEL('w2')}</div>`).join('');
-  const dn=top&&topId?`${esc(top.nick)}${isVer(top.id)?TICK:''}${top.me?' (tú)':''}`:'';
+  const dn=top&&topId?`${esc(top.nick)}${isVer(top.id)?TICK:''}${rkT(top.total)}${top.me?' (tú)':''}`:'';
   const cab=drv?cell(drv,true,'Maquinista · top 1'):`<div class="seat">🎩</div><small>Asiento vacío</small>`;
   const loco=`<div class="car loco" style="--i:${rest.length}"><div class="smk"><i class="pf"></i><i class="pf"></i><i class="pf"></i></div><div class="cab"><div class="cw">${cab}</div></div><div class="boiler"></div><i class="chim"></i><i class="dome"></i><i class="lamp"></i><i class="catch"></i><i class="ch"></i><i class="rod"></i>${WHEEL('w1')}${WHEEL('w2')}${WHEEL('w3')}</div>`;
   return `<div class="card train"><h3><span>🚆 Tren de ${esc(AN)}</span><span>${pas.length} a bordo</span></h3>${drv?`<div class="hint" style="text-align:left;margin:4px 0 0">🎩 Maquinista: <b>${dn}</b></div>`:''}<div class="trk">${wagons}${loco}</div><div class="tch">${pas.map(m=>cheerBtn(m,true)).join('')}</div><div class="hint">Más tiempo total, más cerca de la locomotora. Conduce el top 1 semanal.</div></div>`;
 }
+/* ---------- Más: rangos por horas totales estudiadas (ℕ → ℤ → ℚ → ℝ) ---------- */
+const RANKS=[
+  {s:'ℕ',n:'Naturales',h:0,d:'Todo empieza contando: 1, 2, 3…'},
+  {s:'ℤ',n:'Enteros',h:24,d:'Ya cuentas hacia los dos lados de la recta.'},
+  {s:'ℚ',n:'Racionales',h:70,d:'Todo encaja en una fracción.'},
+  {s:'ℝ',n:'Reales',h:120,d:'La recta completa. Sin huecos.'}];
+const rkT=sec=>{const i=rankOf(sec);return `<span class="rkt r${i}" title="Rango: ${RANKS[i].n}">${RANKS[i].s}</span>`};
+const rankOf=sec=>RANKS.reduce((a,r,i)=>sec>=r.h*3600?i:a,0);
+function moreView(){
+  const tot=stats().total,ri=rankOf(tot),r=RANKS[ri],nx=RANKS[ri+1];
+  const pr=nx?Math.min(100,(tot-r.h*3600)/((nx.h-r.h)*3600)*100):100;
+  let h=`<div class="card rk bg${ri}" data-s="${r.s}"><small class="k">Tu rango</small><div class="sym">${r.s}</div><div class="big">${r.n}</div><div class="cap">${r.d}</div>
+    <div class="rkp"><i style="width:${pr}%"></i></div>
+    <div class="cap" style="margin-top:8px">${nx?`${hm(tot)} de ${nx.h} h · te faltan ${hm(nx.h*3600-tot)} para ${nx.s} ${nx.n}`:`${hm(tot)} estudiadas · has llegado al rango máximo`}</div></div>
+  <h2>Todos los rangos</h2><div class="rkl">${RANKS.map((x,i)=>`<div class="card rkr${i>ri?' rlk':''}${i===ri?' cu':''}"><div class="rkb bg${i}">${x.s}</div><div class="n"><b>${x.n}</b><small>${x.h?x.h+' h de estudio':'Rango inicial'}</small></div><span class="rks">${i<ri?'✓ Conseguido':i===ri?'Actual':'🔒'}</span></div>`).join('')}</div>`;
+  return h;
+}
 /* ---------- Mates Wrapped: semana de sábado a viernes; se desbloquea el viernes a las 13:50 ---------- */
 const DAYN=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'],cap1=s=>s[0].toUpperCase()+s.slice(1);
-const wkStart=(d=new Date())=>{const x=new Date(d);x.setHours(0,0,0,0);x.setDate(x.getDate()-((x.getDay()+1)%7));return x};
+const wkStart=(d=lnow())=>{const x=new Date(d);x.setHours(0,0,0,0);x.setDate(x.getDate()-((x.getDay()+1)%7));return x};
 const addD=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
 function wkRec(k,mk){
   S.wk=S.wk||{};let w=S.wk[k];
@@ -688,7 +737,7 @@ function wrapData(st){
   const days=[...Array(7)].map((_,i)=>{const d=addD(st,i);return{d,n:DAYN[d.getDay()],t:day(dk(d))}});
   const total=days.reduce((a,x)=>a+x.t,0),k=dk(st),w=S.wk&&S.wk[k],end=addD(st,7);
   const sub=IDS.map(i=>({id:i,t:days.reduce((a,x)=>a+(S.hist[dk(x.d)]?.[i]||0),0)}));
-  const ss=S.sess.filter(x=>x.at>=st.getTime()&&x.at<end.getTime());
+  const ss=S.sess.filter(x=>x.at>=st.getTime()+DAY_OFF&&x.at<end.getTime()+DAY_OFF);
   let hrs=w&&w.h.some(v=>v>0)?w.h:null,f=w?w.f:0,p=w?w.p:0;
   if(f+p===0){ss.forEach(x=>{x.n==='Pomodoro'?p+=x.d:f+=x.d})}
   let lg=w&&w.l?{d:w.l.d,s:w.l.s}:null;
@@ -699,12 +748,12 @@ function wrapData(st){
   return{days,total,sub,hrs,f,p,lg,k,ss,prev,psub,wt};
 }
 function wrapView(){
-  const now=new Date(),cs=wkStart(now),ut=addD(cs,6);ut.setHours(13,50,0,0);const unl=now>=ut,latest=unl?cs:addD(cs,-7);
+  const now=new Date(),cs=wkStart(lnow()),ut=addD(cs,6);ut.setHours(13,50,0,0);const unl=now>=ut,latest=unl?cs:addD(cs,-7);
   wrapOff=Math.min(7,Math.max(0,wrapOff));
   const st=addD(latest,-7*wrapOff),en=addD(st,6),dm=d=>d.toLocaleDateString('es',{day:'numeric',month:'short'});
   let h='';
   if(!unl){
-    const ce=addD(cs,6),pr=Math.min(1,Math.max(0,(now-cs)/(ut-cs)));
+    const ce=addD(cs,6),pr=Math.min(1,Math.max(0,(now-cs-DAY_OFF)/(ut-cs-DAY_OFF)));
     h+=`<div class="card lockc"><div class="lkc">🔒</div><small class="k">Semana del ${dm(cs)} al ${dm(ce)}</small><div class="big">Tu semana tiene algo que contarte</div><div class="cd" data-cd="${ut.getTime()}">--</div><div class="bar"><i style="width:${pr*100}%"></i></div><div class="cap">Se revela el viernes a las 13:50. Hasta entonces, sigue estudiando…</div></div>`;
   }
   h+=`<div class="wnav"><button data-wo="1" aria-label="Semana anterior" ${wrapOff>=7?'disabled':''}>‹</button><div style="text-align:center"><b>Semana del ${dm(st)} al ${dm(en)}</b><div class="hint" style="margin:0">Sábado a viernes</div></div><button data-wo="-1" aria-label="Semana siguiente" ${wrapOff<=0?'disabled':''}>›</button></div>`;
@@ -786,17 +835,17 @@ function group(){
   h+=`<div class="seg" style="margin:0 0 14px">${tabs.map(([k,l])=>`<button data-rank="${k}" class="${S.rank===k?'on':''}">${l}</button>`).join('')}</div>`;
   h+=ms.length?`<div class="list">${ms.map((m,i)=>`<div class="m ${m.me?'me1':''}${fireCls(m.streak)}" style="${fireVar(m.streak)}">${fireBg(m.streak)}<div class="pos">${(!sr||m.streak>0)&&['🥇','🥈','🥉'][i]||i+1}</div>
   <div class="av ${m.on?'on':''}" style="background:${m.color}">${esc(m.nick[0].toUpperCase())}</div>
-  <div class="n"><b>${esc(m.nick)}${isVer(m.id)?TICK:''}${m.me?' (tú)':''}</b><small class="${!sr&&m.act?'live':''}">${sr?'Récord: '+dias(m.best):m.act?'Estudiando '+esc(m.act):m.on?'En línea':'Visto '+ago(m.seen)}</small></div><div class="t">${sr?FL+' '+dias(m.streak):hm(m[S.rank])}</div></div>`).join('')}</div>${sr?'<div class="hint">Ranking por racha actual. Un día suma si estudias 1 h o más. El borde de fuego aparece en el día 5 y llega al máximo en el día 30.</div>':''}`
+  <div class="n"><b>${esc(m.nick)}${isVer(m.id)?TICK:''}${rkT(m.total)}${m.me?' (tú)':''}</b><small class="${!sr&&m.act?'live':''}">${sr?'Récord: '+dias(m.best):m.act?'Estudiando '+esc(m.act):m.on?'En línea':'Visto '+ago(m.seen)}</small></div><div class="t">${sr?FL+' '+dias(m.streak):hm(m[S.rank])}</div></div>`).join('')}</div>${sr?'<div class="hint">Ranking por racha actual. Un día suma si estudias 1 h o más. El borde de fuego aparece en el día 5 y llega al máximo en el día 30.</div>':''}`
     :`<div class="empty">Todavía no hay nadie en el ranking.<br>Empieza a estudiar y serás el primero.</div>`;
   return h;
 }
-function hdr(){const e=$('#mename');if(e)e.innerHTML=esc(S.nick||'Tu nombre')+(S.nick&&isVer(fb.uid)?TICK:'')}
+function hdr(){const e=$('#mename');if(e)e.innerHTML=esc(S.nick||'Tu nombre')+(S.nick&&isVer(fb.uid)?TICK:'')+(S.nick?rkT(stats().total):'')}
 function render(){
   setAcc();
   document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===S.view));
   $('#meav').textContent=S.nick?S.nick[0].toUpperCase():'?';$('#meav').style.background=S.color;hdr();
   badge();syncListeners();
-  $('#main').innerHTML=S.view==='study'?study():S.view==='stats'?statsView():group();
+  $('#main').innerHTML=S.view==='study'?study():S.view==='stats'?statsView():S.view==='more'?moreView():group();
   if(S.view==='study')paint();
   if(S.view==='group'&&S.gv==='friends')fixTrain();
   if(S.view==='group'&&S.gv==='chat'){const ci=$('#ci'),cl=$('#cl');if(ci)ci.value=draft;if(cl)cl.scrollTop=cl.scrollHeight}
@@ -808,7 +857,7 @@ const hhmm=t=>{const d=new Date(t||Date.now());return String(d.getHours()).padSt
 function bubble(m){
   const me=m.uid===fb.uid,col=COLORS.includes(m.color)?m.color:COLORS[0],nk=NICK_RE.test(String(m.nick))?String(m.nick):'Anónimo';
   return `<div class="msg ${me?'mine':''}" id="m_${esc(m.k)}"><div class="av" style="background:${col}">${esc(nk[0].toUpperCase())}</div>
-  <div class="bb"><small>${me?'Tú':esc(nk)}${isVer(m.uid)?TICK:''} ${hhmm(m.ts)}${me?`<button class="lk" data-delm="${esc(m.k)}">borrar</button>`:''}</small><p>${esc(m.text)}</p></div></div>`;
+  <div class="bb"><small>${me?'Tú':esc(nk)}${isVer(m.uid)?TICK:''}${rkT(me?stats().total:num(fb.users[m.uid]?.totalSeconds))} ${hhmm(m.ts)}${me?`<button class="lk" data-delm="${esc(m.k)}">borrar</button>`:''}</small><p>${esc(m.text)}</p></div></div>`;
 }
 function chatView(){
   const ms=fb.msgs||[];
