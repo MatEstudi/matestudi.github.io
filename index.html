@@ -10,6 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <!--
 REGLAS RECOMENDADAS (Firebase Console)
+Authentication > Método de acceso: activar "Anónimo" y "Correo electrónico/contraseña" (las cuentas usan un correo interno <nombre>@mathstudy.app).
 Firestore:
   match /databases/{db}/documents { match /users/{uid} {
     function ok() { return request.resource.data.nickname is string && (request.resource.data.nickname == '' || (request.resource.data.nickname.size() >= 3 && request.resource.data.nickname.size() <= 20 && request.resource.data.nickname.matches('^[A-Za-z0-9ÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜÝàáâãäåçèéêëìíîïñòóôõöùúûüýÿ]+( [A-Za-z0-9ÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜÝàáâãäåçèéêëìíîïñòóôõöùúûüýÿ]+)*$')))
@@ -18,7 +19,10 @@ Firestore:
     allow create: if request.auth.uid == uid && ok() && request.resource.data.estaVerificado == false;
     allow update: if request.auth.uid == uid && ok()
       && request.resource.data.get('estaVerificado', false) == resource.data.get('estaVerificado', false);
-    allow delete: if request.auth.uid == uid; } }
+    allow delete: if request.auth.uid == uid; }
+    match /progress/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if request.auth != null && request.auth.uid == uid && request.resource.data.data is string && request.resource.data.data.size() < 500000; } }
   (Para verificar a alguien: Firebase Console > Firestore > users > documento de esa persona > estaVerificado = true.
    Ningun usuario puede cambiar ese campo desde la app: las reglas lo bloquean.)
 Realtime Database (publica estas reglas en Realtime Database > Reglas; son JSON válido):
@@ -166,13 +170,15 @@ h2{font:700 18px var(--f1);margin:26px 0 12px}
 .live{color:#16a34a}
 .empty{text-align:center;color:var(--mut);padding:34px 10px}
 .add{display:flex;gap:8px;margin-top:12px}
-input[type=text],input[type=number],textarea{width:100%;padding:11px 14px;border-radius:14px;border:1px solid var(--line);background:var(--bg)}
+input[type=text],input[type=number],input[type=password],textarea{width:100%;padding:11px 14px;border-radius:14px;border:1px solid var(--line);background:var(--bg)}
 .mini{padding:11px 18px;border-radius:14px;background:var(--acc);color:#fff;font-weight:600}
 dialog{border:0;border-radius:var(--r);padding:24px;width:min(420px,92vw);background:var(--card);color:var(--ink);box-shadow:0 30px 80px rgba(0,0,0,.35)}
 dialog::backdrop{background:rgba(8,10,24,.55);backdrop-filter:blur(3px)}
 dialog label{display:block;margin:14px 0 6px;font-weight:600;font-size:14px}
 .cols{display:flex;gap:8px;flex-wrap:wrap}.cols button{width:30px;height:30px;border-radius:50%;border:3px solid transparent}.cols button.on{border-color:var(--ink)}
 .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}
+.acct{padding:14px;border-radius:16px;background:var(--bg);border:1px solid var(--line)}
+.acct .acts{margin-top:12px}
 .ghost{padding:10px 14px;border-radius:12px;border:1px solid var(--line);font-weight:500}
 #toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translate(-50%,30px);background:var(--ink);color:var(--bg);padding:11px 18px;border-radius:99px;opacity:0;transition:.3s;pointer-events:none;z-index:9;font-weight:500;max-width:90vw}
 #toast.show{opacity:1;transform:translate(-50%,0)}
@@ -384,7 +390,7 @@ const monday=()=>{const d=lnow();d.setHours(0,0,0,0);d.setDate(d.getDate()-((d.g
 const hm=s=>{s=Math.floor(s);const h=Math.floor(s/3600),m=Math.floor(s%3600/60);return h?`${h} h ${m} min`:`${m} min`};
 const clock=s=>{s=Math.max(0,Math.floor(s));const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60,p=n=>String(n).padStart(2,'0');return (h?h+':':'')+p(m)+':'+p(x)};
 const day=k=>S.hist[k]?.t||0;
-function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2600)}
+function toast(m,ms=2600){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),ms)}
 
 /* ---------- Persistencia (con migración de la v1 y validación) ---------- */
 function clean(p){
@@ -407,7 +413,8 @@ function clean(p){
 }
 function load(){let r;try{r=JSON.parse(localStorage.getItem(KEY)||localStorage.getItem(OLD))}catch(e){}S=clean(r)}
 function save(now){clearTimeout(saveT);const go=()=>{try{localStorage.setItem(KEY,JSON.stringify({...S,run:null}))}catch(e){}};now?go():saveT=setTimeout(go,3000)}
-addEventListener('pagehide',()=>{save(true);sync(true,true)});
+let freeze=false; // true mientras se cambia de cuenta: evita que el cierre de la página pise los datos
+addEventListener('pagehide',()=>{if(freeze)return;save(true);sync(true,true)});
 document.addEventListener('visibilitychange',()=>syncListeners());
 /* Varias pestañas: la que arranca el cronómetro manda; las demás se actualizan y se pausan. */
 addEventListener('storage',e=>{if(e.key!==KEY||!e.newValue)return;const v=S.view;load();S.view=v;stop();render();sync()});
@@ -471,7 +478,7 @@ const fireCls=n=>n>0?' fire'+(n>=FIRE_MIN?' fb':'')+(n>=FIRE_MAX?' max':''):'';
 const fireVar=n=>n>0?`--fo:${(n<FIRE_MIN?.08:.12+.2*fireLv(n)).toFixed(2)};--fl:${fireLv(n).toFixed(2)}`:'';
 
 /* ---------- Firebase (comunidad) ---------- */
-let fb={ok:false,db:null,rt:null,uid:'',users:{},pres:{},cheers:{},ver:new Set(),docOk:false},lastFs=0,lastFsSig='',lastProf='',lastPrSig='',unsubFs=null,off=0,ringPrev=0;
+let fb={ok:false,db:null,rt:null,uid:'',users:{},pres:{},cheers:{},ver:new Set(),docOk:false,acct:false},lastFs=0,lastFsSig='',lastProf='',lastPrSig='',unsubFs=null,off=0,ringPrev=0;
 async function initFb(){
   try{
     if(typeof firebase==='undefined')throw 0;
@@ -479,7 +486,11 @@ async function initFb(){
     const au=firebase.auth();fb.db=firebase.firestore();fb.rt=firebase.database();
     const u=await new Promise((r,j)=>{const x=au.onAuthStateChanged(v=>{x();r(v)},j)});
     if(!u)await au.signInAnonymously();
-    fb.uid=au.currentUser.uid;fb.ok=true;fetchVerified();if(S.nick)await checkNick();fb.rt.ref('.info/serverTimeOffset').on('value',s=>{off=s.val()||0});
+    fb.uid=au.currentUser.uid;fb.ok=true;fb.acct=!au.currentUser.isAnonymous;fetchVerified();
+    if(fb.acct){await syncProgress(true);render()}   // cuenta ya abierta: recupera/fusiona el progreso de la nube
+    if(S.nick)await checkNick();
+    if(!fb.acct)legacyDlg();   // cuentas antiguas sin contraseña: aviso para crearla
+    fb.rt.ref('.info/serverTimeOffset').on('value',s=>{off=s.val()||0});
     fb.rt.ref('.info/connected').on('value',s=>{if(s.val()){
       fb.rt.ref('presence/'+fb.uid).onDisconnect().update({online:false,lastSeen:firebase.database.ServerValue.TIMESTAMP,active:null,since:null}).catch(()=>{});lastPrSig='';sync(true)}});
     fb.rt.ref('presence').on('value',s=>{fb.pres=s.val()||{};if(S.view==='group'&&S.gv!=='chat')render();else badge()});
@@ -564,6 +575,7 @@ function cheer(id){
    - Estadísticas (Firestore): al pausar, al cerrar, o cada 5 min mientras estudias; y nunca si no han cambiado. */
 function sync(force,final){
   if(!fb.ok||!S.nick)return;
+  if(fb.acct)syncProgress(force||final);
   const now=Date.now(),st=stats(),a=S.run?SUBJ[S.run].n:null;
   const ps=JSON.stringify([S.nick,S.color,a]);
   if(ps!==lastPrSig){lastPrSig=ps;
@@ -576,6 +588,191 @@ function sync(force,final){
   lastFs=now;lastFsSig=fs;lastProf=prof;
   writeProfile({nickname:S.nick,avatarColor:S.color,totalSeconds:st.total,todaySeconds:st.today,todayDateKey:st.todayKey,weeklySeconds:st.week,weekStartKey:st.weekKey,streak:sk.n,streakEnd:sk.end,bestStreak:bs,updatedAt:now+off}).catch(()=>{});
 }
+/* ---------- Cuentas: nombre de usuario (único) + contraseña ----------
+   Firebase Auth con un correo interno <nombre>@mathstudy.app (nunca se envía nada a esa dirección).
+   El progreso completo se guarda en Firestore (progress/{uid}): al entrar se restaura y después se sincroniza solo.
+   Las cuentas anteriores a este sistema (con nombre pero sin contraseña) reciben un aviso para crear su contraseña. */
+const MAIL='@mathstudy.app',loginEmail=n=>nickKey(n)+MAIL;
+const CREDERR=new Set(['auth/wrong-password','auth/user-not-found','auth/invalid-credential','auth/invalid-login-credentials','auth/invalid-email','auth/missing-password']);
+const isCred=e=>CREDERR.has(e&&e.code)||/INVALID_LOGIN_CREDENTIALS|INVALID_PASSWORD|EMAIL_NOT_FOUND/.test(String(e&&e.message));
+function authMsg(e,ctx){
+  const c=(e&&e.code)||'';
+  if(c==='nick-taken'||c==='auth/email-already-in-use')return 'Ese nombre ya está en uso. Elige otro.';
+  if(c==='nick-error')return 'No se pudo comprobar el nombre. Revisa las reglas de Realtime Database.';
+  if(c==='auth/weak-password')return 'La contraseña es demasiado débil (mínimo 6 caracteres).';
+  if(c==='auth/operation-not-allowed')return 'El acceso con contraseña no está activado en Firebase (Authentication › Método de acceso › Correo electrónico/contraseña).';
+  if(c==='auth/network-request-failed')return 'Sin conexión. Inténtalo de nuevo.';
+  if(c==='auth/too-many-requests')return 'Demasiados intentos. Espera unos minutos y vuelve a probar.';
+  if(isCred(e))return ctx==='pw'?'La contraseña actual no es correcta.':'Nombre o contraseña incorrectos.';
+  return 'No se pudo completar la operación'+(c?' ('+c+')':'')+'.';
+}
+/* Fusión segura del progreso: el tiempo solo crece, así que se queda el máximo de cada campo.
+   Evita que un dispositivo con datos viejos pise lo que otro ya guardó. */
+function mergeProg(a,b){
+  const r={tot:{},hist:{},wk:{}};
+  IDS.forEach(i=>r.tot[i]=Math.max(a.tot[i]||0,b.tot[i]||0));
+  new Set([...Object.keys(a.hist),...Object.keys(b.hist)]).forEach(k=>{
+    const x=a.hist[k]||{},y=b.hist[k]||{},e={t:0};IDS.forEach(i=>{e[i]=Math.max(x[i]||0,y[i]||0);e.t+=e[i]});if(e.t)r.hist[k]=e});
+  const wa=a.wk||{},wb=b.wk||{};
+  new Set([...Object.keys(wa),...Object.keys(wb)]).forEach(k=>{const x=wa[k],y=wb[k];r.wk[k]=(!y||(x&&x.f+x.p>=y.f+y.p))?x:y});
+  Object.keys(r.wk).sort().slice(0,-12).forEach(k=>delete r.wk[k]);
+  const seen=new Set();
+  r.sess=[...a.sess,...b.sess].filter(x=>{const q=x.at+'|'+x.s+'|'+x.d;if(seen.has(q))return false;seen.add(q);return true}).sort((p,q)=>q.at-p.at).slice(0,50);
+  return r;
+}
+/* Progreso en la nube: como mucho una escritura cada 5 min mientras estudias, y al instante al pausar, terminar o cambiar ajustes. */
+let pgQ=Promise.resolve(),lastPg='',lastPgAt=0;
+const progOf=()=>JSON.stringify({tot:S.tot,hist:S.hist,sess:S.sess,wk:S.wk,goalD:S.goalD,goalW:S.goalW,nick:S.nick,color:S.color});
+const syncProgress=force=>pgQ=pgQ.then(()=>pushProg(force));
+async function pushProg(force){
+  if(!fb.ok||!fb.acct)return true;
+  const now=Date.now();
+  if(!force&&now-lastPgAt<3e5)return true;
+  if(!force&&progOf()===lastPg)return true;
+  lastPgAt=now;
+  try{
+    const ref=fb.db.collection('progress').doc(fb.uid),sn=await ref.get();let cs='';
+    if(sn.exists){
+      cs=String(sn.data().data||'');
+      let c=null;try{c=clean(JSON.parse(cs))}catch(e){}
+      if(c){const m=mergeProg(S,c);S.tot=m.tot;S.hist=m.hist;S.sess=m.sess;S.wk=m.wk;
+        if(!S.nick){S.nick=c.nick;S.color=c.color;S.goalD=c.goalD;S.goalW=c.goalW}}
+    }
+    if(!S.nick)return true;
+    const js=progOf();
+    if(js!==cs)await ref.set({data:js,updatedAt:now+off});
+    lastPg=js;save(true);return true;
+  }catch(e){console.warn('Progreso:',e.code||e.message);return false}
+}
+/* Cuentas antiguas (con nombre pero sin contraseña): al abrir la app se les pide crear una.
+   Se puede dejar para después, pero el aviso vuelve a salir hasta que la creen. */
+function legacyDlg(){
+  const d=$('#dlg');
+  if(!fb.ok||fb.acct||!S.nick||d.open)return;
+  d.onclick=null;
+  d.innerHTML=`<h2 style="margin-top:0">Crea una contraseña</h2>
+  <div class="hint" style="text-align:left;margin:0">Ahora las cuentas tienen contraseña. Crea la tuya para guardar tu progreso en la nube y entrar desde cualquier dispositivo. Tu nombre de usuario seguirá siendo <b>${esc(S.nick)}</b>.</div>
+  <label for="lp1">Contraseña</label><input type="password" id="lp1" autocomplete="new-password" placeholder="Mínimo 6 caracteres">
+  <label for="lp2">Repite la contraseña</label><input type="password" id="lp2" autocomplete="new-password">
+  <small id="aerr" style="display:block;color:#ef4444;margin-top:8px;min-height:1.4em"></small>
+  <div class="acts"><button class="mini" id="aok">Guardar contraseña</button><button class="ghost" id="ab">Ahora no</button></div>`;
+  d.showModal();
+  d.onkeydown=e=>{if(e.key==='Enter'&&e.target.tagName==='INPUT'){e.preventDefault();$('#aok').click()}};
+  $('#ab').onclick=()=>d.close();
+  $('#aok').onclick=async()=>{
+    const b=$('#aok'),er=$('#aerr'),p1=$('#lp1').value,p2=$('#lp2').value;er.textContent='';
+    if(p1.length<6)return er.textContent='La contraseña debe tener al menos 6 caracteres.';
+    if(p1!==p2)return er.textContent='Las contraseñas no coinciden.';
+    b.disabled=true;
+    try{
+      await firebase.auth().currentUser.linkWithCredential(firebase.auth.EmailAuthProvider.credential(loginEmail(S.nick),p1));
+      fb.acct=true;lastPrSig='';lastProf='';await syncProgress(true);sync(true);d.close();render();toast('Contraseña creada. Tu progreso ya se guarda en la nube.');
+    }catch(e){er.textContent=authMsg(e);b.disabled=false}
+  };
+}
+function authDlg(mode,keep){
+  const d=$('#dlg'),reg=mode==='reg';
+  d.onclick=null;
+  d.innerHTML=`<h2 style="margin-top:0">${reg?'Crear cuenta':'Entrar a tu cuenta'}</h2>
+  <div class="seg" style="margin:0"><button type="button" id="t-log" class="${reg?'':'on'}">Entrar</button><button type="button" id="t-reg" class="${reg?'on':''}">Crear cuenta</button></div>
+  <label for="an">Nombre de usuario</label><input type="text" id="an" maxlength="20" autocomplete="username" autocapitalize="off" spellcheck="false" value="${esc(keep??(reg?S.nick:''))}" placeholder="Tu nombre">
+  <label for="ap">Contraseña</label><input type="password" id="ap" autocomplete="${reg?'new-password':'current-password'}" placeholder="${reg?'Mínimo 6 caracteres':'Tu contraseña'}">
+  ${reg?`<label for="ap2">Repite la contraseña</label><input type="password" id="ap2" autocomplete="new-password">`:''}
+  <small id="aerr" style="display:block;color:#ef4444;margin-top:8px;min-height:1.4em"></small>
+  <small style="display:block;color:var(--mut);margin-top:2px">${reg
+    ?'Será tu nombre en el ranking. 3–20 caracteres (letras, números y espacios), único y no se podrá cambiar después. El progreso de este dispositivo pasará a tu cuenta.'
+    :'Al entrar, el progreso de este dispositivo se sustituye por el de tu cuenta.'}</small>
+  <div class="acts"><button class="mini" id="aok">${reg?'Crear cuenta':'Entrar'}</button><button class="ghost" id="ab">Volver</button></div>`;
+  d.open||d.showModal();
+  d.onkeydown=e=>{if(e.key==='Enter'&&e.target.tagName==='INPUT'){e.preventDefault();$('#aok').click()}};
+  $('#an').oninput=e=>{const v=e.target.value.replace(new RegExp('[^'+NCH+' ]','g'),'');if(v!==e.target.value)e.target.value=v};
+  $('#t-log').onclick=()=>authDlg('log',$('#an').value);
+  $('#t-reg').onclick=()=>authDlg('reg',$('#an').value);
+  $('#ab').onclick=()=>settings();
+  $('#aok').onclick=()=>reg?doRegister():doLogin();
+}
+async function doRegister(){
+  const b=$('#aok'),er=$('#aerr'),raw=$('#an').value.trim().replace(/\s+/g,' '),p=$('#ap').value,p2=$('#ap2').value;er.textContent='';
+  const m=nickErr(raw);if(m)return er.textContent=m;
+  if(p.length<6)return er.textContent='La contraseña debe tener al menos 6 caracteres.';
+  if(p!==p2)return er.textContent='Las contraseñas no coinciden.';
+  if(!fb.ok)return er.textContent='Sin conexión con el servidor. Inténtalo de nuevo más tarde.';
+  b.disabled=true;
+  try{
+    const r=await claimNick(raw);
+    if(r==='taken')throw{code:'nick-taken'};
+    if(r==='error')throw{code:'nick-error'};
+    try{await firebase.auth().currentUser.linkWithCredential(firebase.auth.EmailAuthProvider.credential(loginEmail(raw),p))}
+    catch(e){releaseNick(raw,S.nick);throw e}
+    const old=S.nick;S.nick=raw;if(old&&old!==raw)releaseNick(old,raw);
+    fb.acct=true;lastPrSig='';lastProf='';save(true);
+    await syncProgress(true);sync(true);$('#dlg').close();render();toast('Cuenta creada. Tu progreso ya se guarda en la nube.');
+  }catch(e){er.textContent=authMsg(e)}
+  b.disabled=false;
+}
+async function doLogin(){
+  const b=$('#aok'),er=$('#aerr'),raw=$('#an').value.trim().replace(/\s+/g,' '),p=$('#ap').value;er.textContent='';
+  if(!raw||!p)return er.textContent='Escribe tu nombre y tu contraseña.';
+  if(nickErr(raw))return er.textContent='Nombre o contraseña incorrectos.';
+  if(!fb.ok)return er.textContent='Sin conexión con el servidor. Inténtalo de nuevo más tarde.';
+  if(!fb.acct&&stats().total>0&&!confirm('Este dispositivo tiene progreso que no está en ninguna cuenta. Si entras, se sustituirá por el progreso de la cuenta. ¿Continuar?'))return;
+  b.disabled=true;
+  const au=firebase.auth(),em=loginEmail(raw);let cred;
+  try{
+    cred=await au.signInWithEmailAndPassword(em,p);
+  }catch(e){er.textContent=authMsg(e);b.disabled=false;return}
+  try{
+    const uid=cred.user.uid,sn=await fb.db.collection('progress').doc(uid).get();let o=null;
+    if(sn.exists){try{o=JSON.parse(sn.data().data)}catch(e){}}
+    const ns=clean(o);
+    if(!ns.nick){try{const u=await fb.db.collection('users').doc(uid).get();ns.nick=String((u.exists&&u.data().nickname)||'').slice(0,20)}catch(e){}}
+    if(!ns.nick)ns.nick=raw;
+    stop();clearTimeout(saveT);freeze=true;
+    localStorage.setItem(KEY,JSON.stringify({...ns,run:null}));localStorage.removeItem(OLD);
+    toast('Progreso restaurado');setTimeout(()=>location.reload(),400);
+  }catch(e){
+    console.warn('Restaurar progreso:',e.code||e.message);
+    freeze=true;try{await au.signOut()}catch(x){}
+    toast('No se pudo cargar tu progreso. Revisa las reglas de Firestore.',5000);setTimeout(()=>location.reload(),2500);
+  }
+}
+function pwDlg(){
+  const d=$('#dlg');d.onclick=null;
+  d.innerHTML=`<h2 style="margin-top:0">Cambiar contraseña</h2>
+  <label for="p0">Contraseña actual</label><input type="password" id="p0" autocomplete="current-password">
+  <label for="p1">Nueva contraseña</label><input type="password" id="p1" autocomplete="new-password" placeholder="Mínimo 6 caracteres">
+  <label for="p2">Repite la nueva contraseña</label><input type="password" id="p2" autocomplete="new-password">
+  <small id="aerr" style="display:block;color:#ef4444;margin-top:8px;min-height:1.4em"></small>
+  <div class="acts"><button class="mini" id="aok">Guardar</button><button class="ghost" id="ab">Volver</button></div>`;
+  d.open||d.showModal();
+  d.onkeydown=e=>{if(e.key==='Enter'&&e.target.tagName==='INPUT'){e.preventDefault();$('#aok').click()}};
+  $('#ab').onclick=()=>settings();
+  $('#aok').onclick=async()=>{
+    const b=$('#aok'),er=$('#aerr'),p0=$('#p0').value,p1=$('#p1').value,p2=$('#p2').value;er.textContent='';
+    if(!p0)return er.textContent='Escribe tu contraseña actual.';
+    if(p1.length<6)return er.textContent='La nueva contraseña debe tener al menos 6 caracteres.';
+    if(p1!==p2)return er.textContent='Las contraseñas nuevas no coinciden.';
+    b.disabled=true;
+    try{
+      const u=firebase.auth().currentUser;
+      await u.reauthenticateWithCredential(firebase.auth.EmailAuthProvider.credential(u.email,p0));
+      await u.updatePassword(p1);settings();toast('Contraseña cambiada');
+    }catch(e){er.textContent=authMsg(e,'pw');b.disabled=false}
+  };
+}
+async function logout(){
+  if(!confirm('¿Cerrar sesión? Tu progreso queda guardado en tu cuenta y se restaura al volver a entrar.'))return;
+  const b=$('#lo');if(b)b.disabled=true;
+  if(S.run||S.cur>0)finish();
+  const ok=await syncProgress(true);
+  if(!ok&&!confirm('No se pudo guardar tu último progreso en la nube. Si cierras sesión ahora, se perderá lo que no esté guardado. ¿Cerrar sesión igualmente?')){if(b)b.disabled=false;return}
+  try{await Promise.race([fb.rt.ref('presence/'+fb.uid).update({online:false,lastSeen:firebase.database.ServerValue.TIMESTAMP,active:null,since:null}),new Promise(r=>setTimeout(r,1500))])}catch(e){}
+  freeze=true;clearTimeout(saveT);
+  try{localStorage.removeItem(KEY);localStorage.removeItem(OLD)}catch(e){}
+  try{await firebase.auth().signOut()}catch(e){}
+  location.reload();
+}
+
 function members(){
   const tk=dk(),wk=dk(monday()),now=Date.now(),out=[];
   new Set([...Object.keys(fb.users),...Object.keys(fb.pres)]).forEach(id=>{
@@ -820,7 +1017,7 @@ function wrapView(){
 function group(){
   const ms=members();let h=`<div class="seg gseg" style="margin:0 0 14px"><button data-gv="friends" class="${S.gv==='friends'?'on':''}">Amigos</button><button data-gv="rank" class="${S.gv==='rank'?'on':''}">Ranking</button><button data-gv="chat" class="${S.gv==='chat'?'on':''}">Chat</button><button data-gv="wrap" class="${S.gv==='wrap'?'on':''}">Mates Wrapped</button></div>`;
   if(S.gv==='wrap')return h+wrapView();
-  if(!S.nick)h+=`<div class="card" style="margin-bottom:14px;text-align:center">Elige un nombre para que tus amigos te vean.<div class="ctl"><button class="mini" data-open="1">Elegir nombre</button></div></div>`;
+  if(!S.nick)h+=`<div class="card" style="margin-bottom:14px;text-align:center">Crea una cuenta para aparecer en la comunidad: tu nombre de usuario será tu nombre en el ranking.<div class="ctl"><button class="mini" data-reg="1">Crear cuenta</button></div></div>`;
   if(!fb.ok)h+=`<div class="hint" style="margin-bottom:10px">Sin conexión: la comunidad no está disponible, pero tu cronómetro funciona igual.</div>`;
   if(S.gv==='chat')return h+chatView();
   if(S.gv==='friends'){
@@ -901,33 +1098,26 @@ function sendMsg(){
 
 /* ---------- Ajustes ---------- */
 function settings(){
-  const d=$('#dlg');
+  const d=$('#dlg'),acc=fb.acct;
+  d.onkeydown=null;
   d.innerHTML=`<h2 style="margin-top:0">Perfil y ajustes</h2>
-  <label for="pn">Nombre en el ranking</label><input type="text" id="pn" maxlength="20" autocomplete="off" value="${esc(S.nick)}" placeholder="Tu nombre"><small id="pnerr" style="display:block;color:#ef4444;margin-top:4px"></small><small style="display:block;color:var(--mut);margin-top:2px">3–20 caracteres: letras, números y espacios. Debe ser único.</small>
+  <div class="acct">${acc
+    ?`<b>Sesión iniciada</b><div class="hint" style="text-align:left;margin:2px 0 0">Tu progreso se guarda en tu cuenta y se restaura al entrar desde cualquier dispositivo.</div>
+    <div class="acts"><button class="ghost" id="cpw">Cambiar contraseña</button><button class="ghost" id="lo">Cerrar sesión</button></div>`
+    :`<b>Sin cuenta</b><div class="hint" style="text-align:left;margin:2px 0 0">Crea una cuenta para guardar tu progreso y recuperarlo en cualquier dispositivo.</div>
+    <div class="acts"><button class="mini" id="reg">Crear cuenta</button><button class="ghost" id="log">Entrar</button></div>`}</div>
+  ${S.nick?`<label for="pn">Nombre de usuario</label><input type="text" id="pn" value="${esc(S.nick)}" readonly><small style="display:block;color:var(--mut);margin-top:2px">${acc?'Es tu nombre en el ranking y el que usas para entrar. No se puede cambiar.':'Es tu nombre en el ranking.'}</small>`:`<div class="hint" style="text-align:left;margin-top:12px">Tu nombre en el ranking es tu nombre de usuario: crea una cuenta para aparecer en la comunidad.</div>`}
   <label>Color</label><div class="cols">${COLORS.map(c=>`<button type="button" data-col="${c}" class="${c===S.color?'on':''}" style="background:${c}" aria-label="Color ${c}"></button>`).join('')}</div>
   <label for="gd">Meta diaria (horas)</label><input type="number" id="gd" min="1" max="24" value="${S.goalD}">
   <label for="gw">Meta semanal (horas)</label><input type="number" id="gw" min="1" max="168" value="${S.goalW}">
-  <div class="acts"><button class="mini" id="ok">Guardar</button><button class="ghost" id="ex">Exportar copia</button><label class="ghost" style="margin:0;cursor:pointer">Importar<input type="file" id="im" accept=".json" hidden></label><button class="ghost" id="cl">Cerrar</button></div>`;
-  d.showModal();
+  <div class="acts"><button class="mini" id="ok">Guardar</button><button class="ghost" id="dcl">Cerrar</button></div>`;
+  d.open||d.showModal();
   let col=S.color;
   d.onclick=e=>{const c=e.target.closest('[data-col]');if(c){col=c.dataset.col;d.querySelectorAll('[data-col]').forEach(b=>b.classList.toggle('on',b===c))}};
-  $('#cl').onclick=()=>d.close();
-  $('#pn').oninput=e=>{const v=e.target.value.replace(new RegExp('[^'+NCH+' ]','g'),'');if(v!==e.target.value)e.target.value=v};
-  $('#ok').onclick=async()=>{
-    const b=$('#ok'),er=$('#pnerr'),raw=$('#pn').value.trim().replace(/\s+/g,' '),old=S.nick;er.textContent='';
-    if(raw){
-      const m=nickErr(raw);if(m){er.textContent=m;return}
-      if(fb.ok&&raw!==old){
-        b.disabled=true;const r=await claimNick(raw);b.disabled=false;
-        if(r==='taken'){er.textContent='Ese nombre ya está en uso. Elige otro.';return}
-        if(r==='error'){er.textContent='No se pudo comprobar el nombre. Revisa las reglas de Realtime Database.';return}
-      }
-    }
-    if(old&&raw!==old)releaseNick(old,raw);
-    S.nick=raw;S.color=col;S.goalD=Math.min(24,num($('#gd').value)||3);S.goalW=Math.min(168,num($('#gw').value)||15);save(true);d.close();render();sync(true);toast('Guardado')};
-  $('#ex').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({...S,run:null},null,1)],{type:'application/json'}));a.download=`mathstudy_${dk()}.json`;a.click();URL.revokeObjectURL(a.href)};
-  $('#im').onchange=e=>{const f=e.target.files[0];if(!f||f.size>2e6)return toast('Archivo no válido');const r=new FileReader();
-    r.onload=()=>{try{const o=JSON.parse(r.result);if(!o||typeof o!=='object'||!(o.tot||o.subjects))throw 0;const v=S.view;stop();S=clean(o);S.view=v;save(true);d.close();render();(fb.ok&&S.nick?checkNick():Promise.resolve()).then(()=>sync(true));toast('Datos importados')}catch(x){toast('El archivo no es una copia válida')}};r.readAsText(f)};
+  $('#dcl').onclick=()=>d.close();
+  if(acc){$('#cpw').onclick=pwDlg;$('#lo').onclick=logout}
+  else{$('#reg').onclick=()=>authDlg('reg');$('#log').onclick=()=>authDlg('log')}
+  $('#ok').onclick=()=>{S.color=col;S.goalD=Math.min(24,num($('#gd').value)||3);S.goalW=Math.min(168,num($('#gw').value)||15);save(true);d.close();render();sync(true);toast('Guardado')};
 }
 
 /* ---------- Eventos ---------- */
@@ -945,6 +1135,7 @@ document.addEventListener('click',e=>{
   if(q('#cs'))return sendMsg();
   if((x=q('[data-delm]')))return fb.ok&&fb.rt.ref('chat/general/'+x.dataset.delm).remove().catch(()=>toast('No se pudo borrar'));
   if((x=q('[data-rank]')))return S.rank=x.dataset.rank,render();
+  if(q('[data-reg]'))return authDlg('reg');
   if(q('[data-open]')||q('#me'))return settings();
 });
 document.addEventListener('change',e=>{const g=e.target.id;if(g==='qd'||g==='qw'){const mx=g==='qd'?24:168,v=Math.min(mx,Math.max(1,num(e.target.value)||1));g==='qd'?S.goalD=v:S.goalW=v;save(true);return render()}
