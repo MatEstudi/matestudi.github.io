@@ -369,7 +369,7 @@ const SUBJ={fonaments:{n:'Fonaments',c:'#6366f1'},algebra:{n:'Àlgebra Lineal I'
 const IDS=Object.keys(SUBJ),COLORS=['#6366f1','#10b981','#f43f5e','#f59e0b','#8b5cf6','#0ea5e9','#ec4899','#14b8a6'];
 const SYM=['∀','∃','∈','⊂','∪','∩','ℝ','ℕ','ℤ','∑','∫','∞','⇒','⇔','≠','≤','≥','λ','ε','δ'];
 const fbCfg={apiKey:"AIzaSyDtBjHqSx7QyJZXlR7EsYAPmTadIu2hmnU",authDomain:"math-study-df821.firebaseapp.com",databaseURL:"https://math-study-df821-default-rtdb.europe-west1.firebasedatabase.app",projectId:"math-study-df821",storageBucket:"math-study-df821.firebasestorage.app",messagingSenderId:"278188701491",appId:"1:278188701491:web:703b085ecc312d0f9ef046"};
-const blank=()=>({theme:'light',view:'study',sel:'fonaments',mode:'free',rank:'daily',gv:'friends',range:7,nick:'',color:COLORS[0],goalD:3,goalW:15,
+const blank=()=>({rev:0,theme:'light',view:'study',sel:'fonaments',mode:'free',rank:'daily',gv:'friends',range:7,nick:'',color:COLORS[0],goalD:3,goalW:15,
   tot:{fonaments:0,algebra:0,analisi:0},hist:{},sess:[],wk:{},
   run:null,cur:0,phase:0,rem:POMO[0]});
 let S=blank(),last=0,loop=null,tick5=0,saveT=0;
@@ -395,6 +395,7 @@ function toast(m,ms=2600){const t=$('#toast');t.textContent=m;t.classList.add('s
 /* ---------- Persistencia (con migración de la v1 y validación) ---------- */
 function clean(p){
   const b=blank(),o=p&&typeof p==='object'?p:{};
+  b.rev=Math.max(0,Math.floor(Number(o.rev))||0);
   b.theme=o.theme==='dark'?'dark':'light';
   b.nick=String(o.nick??o.userProfile?.nickname??'').trim().slice(0,20);
   b.color=COLORS.includes(o.color??o.userProfile?.avatarColor)?(o.color??o.userProfile.avatarColor):COLORS[0];
@@ -636,12 +637,15 @@ async function pushProg(force){
     if(sn.exists){
       cs=String(sn.data().data||'');
       let c=null;try{c=clean(JSON.parse(cs))}catch(e){}
-      if(c){const m=mergeProg(S,c);S.tot=m.tot;S.hist=m.hist;S.sess=m.sess;S.wk=m.wk;
+      const cr=Math.max(0,Math.floor(Number(sn.data().rev))||0);
+      if(c&&cr>(S.rev||0)){ /* ajuste manual desde la consola: la nube manda, se sustituye lo local */
+        S.tot=c.tot;S.hist=c.hist;S.sess=c.sess;S.wk=c.wk;S.rev=cr;stop();render()}
+      else if(c){const m=mergeProg(S,c);S.tot=m.tot;S.hist=m.hist;S.sess=m.sess;S.wk=m.wk;
         if(!S.nick){S.nick=c.nick;S.color=c.color;S.goalD=c.goalD;S.goalW=c.goalW}}
     }
     if(!S.nick)return true;
     const js=progOf();
-    if(js!==cs)await ref.set({data:js,updatedAt:now+off});
+    if(js!==cs)await ref.set({data:js,updatedAt:now+off,rev:S.rev||0});
     lastPg=js;save(true);return true;
   }catch(e){console.warn('Progreso:',e.code||e.message);return false}
 }
@@ -725,7 +729,7 @@ async function doLogin(){
   try{
     const uid=cred.user.uid,sn=await fb.db.collection('progress').doc(uid).get();let o=null;
     if(sn.exists){try{o=JSON.parse(sn.data().data)}catch(e){}}
-    const ns=clean(o);
+    const ns=clean(o);ns.rev=Math.max(0,Math.floor(Number(sn.exists&&sn.data().rev))||0);
     if(!ns.nick){try{const u=await fb.db.collection('users').doc(uid).get();ns.nick=String((u.exists&&u.data().nickname)||'').slice(0,20)}catch(e){}}
     if(!ns.nick)ns.nick=raw;
     stop();clearTimeout(saveT);freeze=true;
