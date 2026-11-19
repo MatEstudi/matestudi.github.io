@@ -315,12 +315,16 @@ button.chr:hover{border-color:var(--acc)}
 .bg0{background:linear-gradient(135deg,#64748b,#475569)}
 .bg1{background:radial-gradient(circle at 85% 10%,rgba(255,255,255,.3),transparent 45%),linear-gradient(135deg,#38bdf8,#2563eb 60%,#1e3a8a)}
 .bg2{background:radial-gradient(circle at 15% 90%,rgba(251,191,36,.4),transparent 40%),radial-gradient(circle at 85% 10%,rgba(255,255,255,.32),transparent 45%),radial-gradient(rgba(255,255,255,.2) 1.2px,transparent 1.5px) 0 0/16px 16px,linear-gradient(135deg,#a78bfa,#7c3aed 50%,#db2777)}
-.bg3{background:radial-gradient(rgba(255,255,255,.35) 1px,transparent 1.5px) 0 0/22px 22px,linear-gradient(120deg,#fde047,#f97316,#ec4899,#8b5cf6,#38bdf8,#fde047);background-size:22px 22px,300% 300%;animation:rkshift 9s linear infinite}
+.bg3{background:radial-gradient(circle at 85% 10%,rgba(255,255,255,.3),transparent 45%),radial-gradient(rgba(255,255,255,.22) 1.2px,transparent 1.5px) 0 0/18px 18px,linear-gradient(135deg,#2dd4bf,#0d9488 55%,#065f46)}
+.bg4{background:radial-gradient(rgba(255,255,255,.35) 1px,transparent 1.5px) 0 0/22px 22px,linear-gradient(120deg,#fde047,#f97316,#ec4899,#8b5cf6,#38bdf8,#fde047);background-size:22px 22px,300% 300%;animation:rkshift 9s linear infinite}
+.bg5{background:radial-gradient(circle at 20% 15%,rgba(56,189,248,.55),transparent 42%),radial-gradient(circle at 80% 85%,rgba(236,72,153,.55),transparent 42%),radial-gradient(rgba(255,255,255,.6) 1px,transparent 1.5px) 0 0/26px 26px,linear-gradient(135deg,#0f0a2e,#1e1b4b 55%,#312e81);background-size:auto,auto,26px 26px,auto;animation:rkc 7s ease-in-out infinite alternate}
 .rk{position:relative;overflow:hidden;color:#fff;border:0;text-align:center;padding:28px 22px}
 .rk>*{position:relative;z-index:1}
 .rk::before{content:attr(data-s);position:absolute;right:-8px;bottom:-34px;font:700 190px/1 var(--f1);opacity:.14;z-index:0}
-.rk.bg3{box-shadow:0 0 30px rgba(249,115,22,.45),0 0 60px rgba(139,92,246,.25)}
-.rk.bg3::after{content:'✦ ✧ ✦ ✧ ✦';position:absolute;left:0;right:0;top:10px;letter-spacing:22px;font-size:14px;opacity:.8;animation:rktw 2.4s ease-in-out infinite alternate}
+.rk.bg3{box-shadow:0 0 26px rgba(45,212,191,.4)}
+.rk.bg4{box-shadow:0 0 30px rgba(249,115,22,.45),0 0 60px rgba(139,92,246,.25)}
+.rk.bg5{box-shadow:0 0 34px rgba(99,102,241,.6),0 0 70px rgba(236,72,153,.35)}
+.rk.bg4::after,.rk.bg5::after{content:'✦ ✧ ✦ ✧ ✦';position:absolute;left:0;right:0;top:10px;letter-spacing:22px;font-size:14px;opacity:.8;animation:rktw 2.4s ease-in-out infinite alternate}
 .rk small.k{display:block;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;opacity:.85}
 .rk .sym{font:700 84px/1 var(--f1);margin:10px 0 4px;text-shadow:0 4px 24px rgba(0,0,0,.25)}
 .rk .big{font:700 26px var(--f1)}.rk .cap{opacity:.9;font-size:14px;margin-top:4px}
@@ -333,14 +337,17 @@ button.chr:hover{border-color:var(--acc)}
 .rks{font-size:13px;font-weight:600;color:var(--mut);flex:none}.rkr.cu .rks{color:var(--acc)}
 @keyframes rkshift{to{background-position:22px 22px,300% 0}}
 @keyframes rktw{from{opacity:.35}to{opacity:.95}}
-@media(prefers-reduced-motion:reduce){.bg3,.rk.bg3::after{animation:none}}
+@keyframes rkc{to{filter:hue-rotate(35deg) brightness(1.15)}}
+@media(prefers-reduced-motion:reduce){.bg4,.bg5,.rk.bg4::after,.rk.bg5::after{animation:none}}
 .rkt{display:inline-block;margin-left:4px;font:700 1.2em/1 var(--f1);vertical-align:baseline;white-space:nowrap}
 .rkt.r0{color:var(--mut)}
 .rkt.r1{background:linear-gradient(135deg,#38bdf8,#2563eb);-webkit-background-clip:text;background-clip:text;color:transparent}
 .rkt.r2{background:linear-gradient(135deg,#a78bfa,#ec4899);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 3px rgba(168,85,247,.8)) drop-shadow(0 0 7px rgba(236,72,153,.45))}
-.rkt.r3{background:linear-gradient(120deg,#fde047,#f97316,#ec4899,#8b5cf6,#38bdf8,#fde047);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 3px rgba(253,224,71,.95)) drop-shadow(0 0 8px rgba(249,115,22,.8)) drop-shadow(0 0 14px rgba(139,92,246,.55));animation:rkt3 4s linear infinite}
+.rkt.r3{background:linear-gradient(135deg,#5eead4,#0d9488);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 3px rgba(45,212,191,.7))}
+.rkt.r4{background:linear-gradient(120deg,#fde047,#f97316,#ec4899,#8b5cf6,#38bdf8,#fde047);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 3px rgba(253,224,71,.95)) drop-shadow(0 0 8px rgba(249,115,22,.8)) drop-shadow(0 0 14px rgba(139,92,246,.55));animation:rkt3 4s linear infinite}
+.rkt.r5{background:linear-gradient(120deg,#67e8f9,#818cf8,#f0abfc,#fff,#67e8f9);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 3px rgba(129,140,248,.95)) drop-shadow(0 0 9px rgba(192,132,252,.8)) drop-shadow(0 0 16px rgba(56,189,248,.55));animation:rkt3 3s linear infinite}
 @keyframes rkt3{to{background-position:300% 0}}
-@media(prefers-reduced-motion:reduce){.rkt.r3{animation:none}}
+@media(prefers-reduced-motion:reduce){.rkt.r4,.rkt.r5{animation:none}}
 
 .stv{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;background:radial-gradient(700px 420px at 50% -80px,color-mix(in srgb,var(--acc) 28%,transparent),transparent),var(--bg);padding:calc(env(safe-area-inset-top) + 14px) 18px calc(env(safe-area-inset-bottom) + 16px);animation:stin .3s ease}
 .stp{display:flex;gap:4px;max-width:420px;width:100%;margin:0 auto}
@@ -918,12 +925,14 @@ function trainBlock(ms,all){
   const loco=`<div class="car loco" style="--i:${rest.length}"><div class="smk"><i class="pf"></i><i class="pf"></i><i class="pf"></i></div><div class="cab"><div class="cw">${cab}</div></div><div class="boiler"></div><i class="chim"></i><i class="dome"></i><i class="lamp"></i><i class="catch"></i><i class="ch"></i><i class="rod"></i>${WHEEL('w1')}${WHEEL('w2')}${WHEEL('w3')}</div>`;
   return `<div class="card train"><h3><span>🚆 Tren de ${esc(AN)}</span><span>${pas.length} a bordo</span></h3>${drv?`<div class="hint" style="text-align:left;margin:4px 0 0">🎩 Maquinista: <b>${dn}</b></div>`:''}<div class="trk">${wagons}${loco}</div><div class="tch">${pas.map(m=>cheerBtn(m,true)).join('')}</div><div class="hint">Más tiempo total, más cerca de la locomotora. Conduce el top 1 semanal.</div></div>`;
 }
-/* ---------- Más: rangos por horas totales estudiadas (ℕ → ℤ → ℚ → ℝ) ---------- */
+/* ---------- Más: rangos por horas totales estudiadas (ℕ → ℤ → ℚ → 𝕀 → ℝ → ℂ) ---------- */
 const RANKS=[
   {s:'ℕ',n:'Naturales',h:0,d:'Todo empieza contando: 1, 2, 3…'},
   {s:'ℤ',n:'Enteros',h:24,d:'Ya cuentas hacia los dos lados de la recta.'},
-  {s:'ℚ',n:'Racionales',h:70,d:'Todo encaja en una fracción.'},
-  {s:'ℝ',n:'Reales',h:120,d:'La recta completa. Sin huecos.'}];
+  {s:'ℚ',n:'Racionales',h:50,d:'Todo encaja en una fracción.'},
+  {s:'𝕀',n:'Irracionales',h:100,d:'Decimales infinitos que nunca se repiten: π, e, √2…'},
+  {s:'ℝ',n:'Reales',h:160,d:'La recta completa. Sin huecos.'},
+  {s:'ℂ',n:'Complejos',h:260,d:'Ya no cabes en una recta: saltas al plano. Aquí √−1 existe.'}];
 const rkT=sec=>{const i=rankOf(sec);return `<span class="rkt r${i}" title="Rango: ${RANKS[i].n}">${RANKS[i].s}</span>`};
 const rankOf=sec=>RANKS.reduce((a,r,i)=>sec>=r.h*3600?i:a,0);
 function moreView(){
