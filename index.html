@@ -383,12 +383,13 @@ button.chr:hover{border-color:var(--acc)}
 <script>
 /* ---------- Datos base ---------- */
 const KEY='mathstudy_hub_v2',OLD='mathstudy_hub_v1',POMO=[50*60,10*60];
-const SUBJ={fonaments:{n:'Fonaments',c:'#6366f1'},algebra:{n:'Àlgebra Lineal I',c:'#10b981'},analisi:{n:'Anàlisi Matemàtic I',c:'#f43f5e'}};
+const SUBJ={fonaments:{n:'Fonaments',c:'#6366f1'},algebra:{n:'Àlgebra Lineal I',c:'#10b981'},analisi:{n:'Anàlisi Matemàtic I',c:'#f43f5e'},otros:{n:'Otros',c:'#64748b'}};
+const NOWRAP='otros'; // no cuenta para «más/menos estudiada» ni «asignatura en alza/caída» del Wrapped
 const IDS=Object.keys(SUBJ),COLORS=['#6366f1','#10b981','#f43f5e','#f59e0b','#8b5cf6','#0ea5e9','#ec4899','#14b8a6'];
 const SYM=['∀','∃','∈','⊂','∪','∩','ℝ','ℕ','ℤ','∑','∫','∞','⇒','⇔','≠','≤','≥','λ','ε','δ'];
 const fbCfg={apiKey:"AIzaSyDtBjHqSx7QyJZXlR7EsYAPmTadIu2hmnU",authDomain:"math-study-df821.firebaseapp.com",databaseURL:"https://math-study-df821-default-rtdb.europe-west1.firebasedatabase.app",projectId:"math-study-df821",storageBucket:"math-study-df821.firebasestorage.app",messagingSenderId:"278188701491",appId:"1:278188701491:web:703b085ecc312d0f9ef046"};
 const blank=()=>({rev:0,theme:'light',view:'study',sel:'fonaments',mode:'free',rank:'daily',gv:'friends',range:7,nick:'',color:COLORS[0],goalD:3,goalW:15,
-  tot:{fonaments:0,algebra:0,analisi:0},hist:{},sess:[],wk:{},ws:{},
+  tot:{fonaments:0,algebra:0,analisi:0,otros:0},hist:{},sess:[],wk:{},ws:{},
   run:null,cur:0,phase:0,rem:POMO[0]});
 let S=blank(),last=0,loop=null,tick5=0,saveT=0;
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -441,7 +442,7 @@ addEventListener('storage',e=>{if(e.key!==KEY||!e.newValue)return;const v=S.view
 
 /* ---------- Tiempo ---------- */
 function addTime(id,d){
-  S.tot[id]+=d;const k=dk(),e=S.hist[k]||(S.hist[k]={t:0,fonaments:0,algebra:0,analisi:0});e[id]+=d;e.t+=d;
+  S.tot[id]+=d;const k=dk(),e=S.hist[k]||(S.hist[k]={t:0,fonaments:0,algebra:0,analisi:0,otros:0});e[id]+=d;e.t+=d;
   const w=wkRec(dk(wkStart()),true);w.h[new Date().getHours()]+=d;w[S.mode==='pomo'?'p':'f']+=d;
 }
 function tick(){
@@ -1003,8 +1004,8 @@ function commParts(st){
   }
   h+='\u0001';
   /* asignaturas */
-  const sb=IDS.map((id,i)=>({id,i,t:rows.reduce((a,r)=>a+r.s[i],0)})),so=[...sb].sort((a,b)=>b.t-a.t),st1=so[0],st2=so[so.length-1],pr=x=>fmtN(x.t/tot*100)+'%';
-  h+=`<div class="w2"><div class="card wc"><small class="k">Comunidad · más estudiada</small><div class="big" style="font-size:18px;color:${SUBJ[st1.id].c}">${esc(SUBJ[st1.id].n)}</div><div class="cap">${hm(st1.t)} · ${pr(st1)}</div></div><div class="card wc"><small class="k">Comunidad · menos estudiada</small><div class="big" style="font-size:18px;color:${SUBJ[st2.id].c}">${esc(SUBJ[st2.id].n)}</div><div class="cap">${hm(st2.t)} · ${pr(st2)}</div></div></div>`;
+  const sb=IDS.map((id,i)=>({id,i,t:rows.reduce((a,r)=>a+r.s[i],0)})),so=[...sb].sort((a,b)=>b.t-a.t),sr=so.filter(x=>x.id!==NOWRAP),st1=sr[0],st2=sr[sr.length-1],pr=x=>fmtN(x.t/tot*100)+'%';
+  if(st1)h+=`<div class="w2"><div class="card wc"><small class="k">Comunidad · más estudiada</small><div class="big" style="font-size:18px;color:${SUBJ[st1.id].c}">${esc(SUBJ[st1.id].n)}</div><div class="cap">${hm(st1.t)} · ${pr(st1)}</div></div><div class="card wc"><small class="k">Comunidad · menos estudiada</small><div class="big" style="font-size:18px;color:${SUBJ[st2.id].c}">${esc(SUBJ[st2.id].n)}</div><div class="cap">${hm(st2.t)} · ${pr(st2)}</div></div></div>`;
   h+=`<div class="card wc"><small class="k">Comunidad · reparto por asignatura</small><div class="split">${sb.filter(x=>x.t>0).map(x=>`<i style="width:${x.t/tot*100}%;background:${SUBJ[x.id].c}"></i>`).join('')}</div><div class="cap" style="margin-top:8px">${so.map(x=>`<span style="color:${SUBJ[x.id].c}">●</span> ${esc(SUBJ[x.id].n)} ${pr(x)}`).join(' · ')}</div></div>`;
   /* campeones por asignatura */
   h+=`<div class="card wc"><span class="em">🏅</span><small class="k">Comunidad · campeones por asignatura</small>${sb.map(x=>{const b=[...rows].sort((p,q)=>q.s[x.i]-p.s[x.i]||p.nick.localeCompare(q.nick))[0];return `<div class="chr"><span style="color:${SUBJ[x.id].c};font-weight:600">${esc(SUBJ[x.id].n)}</span><span>${b.s[x.i]>0?esc(b.nick)+(b.me?' (tú)':'')+' · '+hm(b.s[x.i]):'Nadie'}</span></div>`}).join('')}</div>`;
@@ -1048,8 +1049,8 @@ function wrapView(){
     h+=`<div class="card wc"><small class="k">Tu método favorito</small><div class="big">${win}</div><div class="cap">Pomodoro ${hm(D.p)} (${pp}%) · Libre ${hm(D.f)} (${100-pp}%)</div><div class="split"><i style="width:${pp}%;background:#f43f5e"></i><i style="width:${100-pp}%;background:var(--acc)"></i></div></div>`;
   }
   /* asignaturas */
-  const so=[...D.sub].sort((a,b)=>b.t-a.t),top=so[0],low=so[so.length-1];
-  h+=`<div class="w2"><div class="card wc"><small class="k">Más estudiada</small><div class="big" style="font-size:18px;color:${SUBJ[top.id].c}">${esc(SUBJ[top.id].n)}</div><div class="cap">${hm(top.t)}</div></div><div class="card wc"><small class="k">Menos estudiada</small><div class="big" style="font-size:18px;color:${SUBJ[low.id].c}">${esc(SUBJ[low.id].n)}</div><div class="cap">${hm(low.t)}</div></div></div>`;
+  const so=D.sub.filter(x=>x.id!==NOWRAP).sort((a,b)=>b.t-a.t),top=so[0],low=so[so.length-1];
+  if(top)h+=`<div class="w2"><div class="card wc"><small class="k">Más estudiada</small><div class="big" style="font-size:18px;color:${SUBJ[top.id].c}">${esc(SUBJ[top.id].n)}</div><div class="cap">${hm(top.t)}</div></div><div class="card wc"><small class="k">Menos estudiada</small><div class="big" style="font-size:18px;color:${SUBJ[low.id].c}">${esc(SUBJ[low.id].n)}</div><div class="cap">${hm(low.t)}</div></div></div>`;
   if(C)h+=C.b;
   /* días */
   const ds=[...D.days].sort((a,b)=>b.t-a.t),bd=ds[0],zero=D.days.filter(x=>!x.t),wd=ds[ds.length-1];
@@ -1072,7 +1073,7 @@ function wrapView(){
   sm.push(sc('Entre semana o finde',wp>40?'🏖️ Guerrero del finde':wp<15?'💼 De lunes a viernes':'📅 Bien repartido',`Fin de semana ${wp}% · Lunes a viernes ${100-wp}%`,17));
   const mean=D.total/7,sd=Math.sqrt(D.days.reduce((a,x)=>a+(x.t-mean)**2,0)/7),cv=sd/mean,mxd=Math.max(...D.days.map(x=>x.t));
   sm.push(sc('Regularidad',cv<.45?'⚖️ Constante como un reloj':cv<.9?'🌊 Con sus altibajos':'🎢 Montaña rusa',`Tu mejor día fue ${fmtN(mxd/mean)}× tu media diaria`,17));
-  const ch=D.sub.map((x,i)=>({id:x.id,d:x.t-D.psub[i].t})).filter(x=>x.d!==0).sort((a,b)=>Math.abs(b.d)-Math.abs(a.d))[0];
+  const ch=D.sub.map((x,i)=>({id:x.id,d:x.t-D.psub[i].t})).filter(x=>x.d!==0&&x.id!==NOWRAP).sort((a,b)=>Math.abs(b.d)-Math.abs(a.d))[0];
   if(D.prev>0&&ch)sm.push(sc(ch.d>0?'Asignatura en alza':'Asignatura en caída',esc(SUBJ[ch.id].n),`${ch.d>0?'+':'−'}${hm(Math.abs(ch.d))} frente a la semana pasada`,17,SUBJ[ch.id].c));
   sm.push(sc('Tiempo despierto',fmtN(D.total/403200*100)+'%','de tus horas despierto (a 16 h al día) fueron para las mates',24));
   for(let i=0;i<sm.length;i+=2)h+=sm[i+1]?`<div class="w2">${sm[i]}${sm[i+1]}</div>`:sm[i];
