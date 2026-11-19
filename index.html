@@ -400,7 +400,7 @@ const SYM=['∀','∃','∈','⊂','∪','∩','ℝ','ℕ','ℤ','∑','∫','�
 const fbCfg={apiKey:"AIzaSyDtBjHqSx7QyJZXlR7EsYAPmTadIu2hmnU",authDomain:"math-study-df821.firebaseapp.com",databaseURL:"https://math-study-df821-default-rtdb.europe-west1.firebasedatabase.app",projectId:"math-study-df821",storageBucket:"math-study-df821.firebasestorage.app",messagingSenderId:"278188701491",appId:"1:278188701491:web:703b085ecc312d0f9ef046"};
 const blank=()=>({rev:0,theme:'light',view:'study',sel:'fonaments',mode:'free',rank:'daily',gv:'friends',range:7,nick:'',color:COLORS[0],goalD:3,goalW:15,
   tot:{fonaments:0,algebra:0,analisi:0,otros:0},hist:{},sess:[],wk:{},ws:{},
-  run:null,cur:0,phase:0,rem:POMO[0]});
+  run:null,cur:0,curAt:0,phase:0,rem:POMO[0]});
 let S=blank(),last=0,loop=null,tick5=0,saveT=0;
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const NCH='A-Za-z0-9ÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜÝàáâãäåçèéêëìíîïñòóôõöùúûüýÿ',NICK_RE=new RegExp('^['+NCH+']+(?: ['+NCH+']+)*$');
@@ -430,6 +430,9 @@ function clean(p){
   b.color=COLORS.includes(o.color??o.userProfile?.avatarColor)?(o.color??o.userProfile.avatarColor):COLORS[0];
   b.goalD=Math.min(24,num(o.goalD??o.dailyGoalHours)||3);b.goalW=Math.min(168,num(o.goalW??o.weeklyGoalHours)||15);
   b.sel=IDS.includes(o.sel)?o.sel:'fonaments';b.range=o.range===30?30:7;b.mode=o.mode==='pomo'?'pomo':'free';
+  /* Sesión en curso: se recupera al recargar o reabrir (queda en pausa, lista para «Reanudar» o «Terminar»). */
+  b.phase=o.phase===1?1:0;b.cur=num(o.cur,86400);b.curAt=b.cur>0?num(o.curAt,1e13):0;
+  {const r=num(o.rem,POMO[b.phase]);b.rem=r>0?r:POMO[b.phase]}
   IDS.forEach(i=>{
     b.tot[i]=num(o.tot?.[i]??o.subjects?.[i]?.totalSeconds);
   });
@@ -443,12 +446,23 @@ function clean(p){
   return b;
 }
 function load(){let r;try{r=JSON.parse(localStorage.getItem(KEY)||localStorage.getItem(OLD))}catch(e){}S=clean(r)}
-function save(now){clearTimeout(saveT);const go=()=>{try{localStorage.setItem(KEY,JSON.stringify({...S,run:null}))}catch(e){}};now?go():saveT=setTimeout(go,3000)}
+/* Guardado con límite de frecuencia (throttle): como mucho una escritura cada 3 s.
+   Antes era un debounce: tick() llama a save() cada segundo y cada llamada reiniciaba el temporizador de 3 s,
+   así que mientras el cronómetro corría NUNCA se escribía nada en localStorage (solo al pausar o cerrar). */
+let saveAt=0,saveWarned=false;
+function save(now){
+  clearTimeout(saveT);
+  const go=()=>{saveAt=Date.now();try{localStorage.setItem(KEY,JSON.stringify({...S,run:null}))}catch(e){
+    if(!saveWarned){saveWarned=true;toast('No se puede guardar en este navegador (almacenamiento lleno o bloqueado). Tu progreso podría perderse.',6000)}}};
+  if(now)go();else saveT=setTimeout(go,Math.max(0,3000-(Date.now()-saveAt)));
+}
 let freeze=false; // true mientras se cambia de cuenta: evita que el cierre de la página pise los datos
 addEventListener('pagehide',()=>{if(freeze)return;save(true);sync(true,true)});
+/* En móvil el navegador suele matar la pestaña sin lanzar pagehide: se guarda también al pasar a segundo plano. */
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&!freeze)save(true)});
 document.addEventListener('visibilitychange',()=>syncListeners());
 /* Varias pestañas: la que arranca el cronómetro manda; las demás se actualizan y se pausan. */
-addEventListener('storage',e=>{if(e.key!==KEY||!e.newValue)return;const v=S.view;load();S.view=v;stop();render();sync()});
+addEventListener('storage',e=>{if(e.key!==KEY||!e.newValue)return;const v=S.view,g=S.gv,r=S.rank,c=S.cur,ca=S.curAt,ph=S.phase,rm=S.rem;load();S.view=v;S.gv=g;S.rank=r;S.cur=c;S.curAt=ca;S.phase=ph;S.rem=rm;stop();render();sync()});
 
 /* ---------- Tiempo ---------- */
 function addTime(id,d){
@@ -457,8 +471,8 @@ function addTime(id,d){
 }
 function tick(){
   const now=Date.now(),d=Math.floor((now-last)/1000);if(d<1||!S.run)return;last+=d*1000;
-  if(S.mode==='free'){S.cur+=d;addTime(S.run,d)}
-  else{S.rem-=d;if(S.phase===0){S.cur+=d;addTime(S.run,d)}
+  if(S.mode==='free'){S.cur+=d;S.curAt=now;addTime(S.run,d)}
+  else{S.rem-=d;if(S.phase===0){S.cur+=d;S.curAt=now;addTime(S.run,d)}
     if(S.rem<=0){bell();if(S.phase===0){endSession('Pomodoro');S.phase=1;S.rem=POMO[1];toast('Pomodoro completado. Descansa 10 minutos.')}
       else{S.phase=0;S.rem=POMO[0];S.run=null;stop();toast('Descanso terminado.');render()}}}
   paint();if(++tick5%30===0)sync();save();
@@ -471,7 +485,7 @@ function toggle(){
   render();sync(true);save(true);
 }
 function load2(){try{const r=JSON.parse(localStorage.getItem(KEY));if(r){const o=clean(r);S.tot=o.tot;S.hist=o.hist;S.sess=o.sess;S.wk=o.wk;S.ws={...S.ws,...o.ws}}}catch(e){}}
-function endSession(note){if(S.cur>=10){S.sess.unshift({s:S.run||S.sel,d:S.cur,at:Date.now(),n:note});S.sess=S.sess.slice(0,50);const w=wkRec(dk(wkStart()),true);if(!w.l||S.cur>w.l.d)w.l={d:S.cur,s:S.run||S.sel}}S.cur=0}
+function endSession(note){if(S.cur>=10){const at=S.curAt||Date.now();S.sess.unshift({s:S.run||S.sel,d:S.cur,at,n:note});S.sess=S.sess.slice(0,50);const w=wkRec(dk(wkStart(lnow(at))),true);if(!w.l||S.cur>w.l.d)w.l={d:S.cur,s:S.run||S.sel}}S.cur=0;S.curAt=0}
 function finish(){const had=S.cur;stop();endSession(S.mode==='pomo'?'Pomodoro':'Libre');if(had>=10)toast('Sesión guardada: '+hm(had));S.phase=0;S.rem=POMO[0];render();sync(true);save(true)}
 function bell(){try{const a=new(window.AudioContext||webkitAudioContext)(),o=a.createOscillator(),g=a.createGain();o.frequency.value=880;o.connect(g);g.connect(a.destination);g.gain.setValueAtTime(.2,a.currentTime);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+1.4);o.start();o.stop(a.currentTime+1.5)}catch(e){}}
 
