@@ -85,8 +85,8 @@ Realtime Database (publica estas reglas en Realtime Database > Reglas; son JSON 
             "ts"
           ],
           "$id": {
-            ".write": "auth!=null && ((!data.exists() && newData.child('uid').val()===auth.uid) || (data.exists() && !newData.exists() && (data.child('uid').val()===auth.uid || data.child('ts').val() < now-604800000)))",
-            ".validate": "newData.hasChildren(['uid','nick','text','ts','color']) && newData.child('text').isString() && newData.child('text').val().length>0 && newData.child('text').val().length<=300 && newData.child('nick').isString() && newData.child('nick').val().length>=3 && newData.child('nick').val().length<=20 && newData.child('nick').val().matches(/^[A-Za-z0-9ÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜÝàáâãäåçèéêëìíîïñòóôõöùúûüýÿ]+( [A-Za-z0-9ÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜÝàáâãäåçèéêëìíîïñòóôõöùúûüýÿ]+)*$/) && newData.child('color').isString() && newData.child('color').val().length<=7 && newData.child('ts').val()===now",
+            ".write": "auth!=null && ((!data.exists() && newData.child('uid').val()===auth.uid && auth.token.firebase.sign_in_provider!=='anonymous' && root.child('nicks').child(newData.child('k').val()).child('uid').val()===auth.uid && root.child('nicks').child(newData.child('k').val()).child('nick').val()===newData.child('nick').val()) || (data.exists() && !newData.exists() && (data.child('uid').val()===auth.uid || data.child('ts').val() < now-604800000)))",
+            ".validate": "newData.hasChildren(['uid','nick','text','ts','color','k']) && newData.child('text').isString() && newData.child('text').val().length>0 && newData.child('text').val().length<=300 && newData.child('nick').isString() && newData.child('nick').val().length>=3 && newData.child('nick').val().length<=20 && newData.child('nick').val().matches(/^[A-Za-z0-9ÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜÝàáâãäåçèéêëìíîïñòóôõöùúûüýÿ]+( [A-Za-z0-9ÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜÝàáâãäåçèéêëìíîïñòóôõöùúûüýÿ]+)*$/) && newData.child('color').isString() && newData.child('color').val().length<=7 && newData.child('ts').val()===now",
             "uid": {
               ".validate": true
             },
@@ -101,6 +101,9 @@ Realtime Database (publica estas reglas en Realtime Database > Reglas; son JSON 
             },
             "color": {
               ".validate": true
+            },
+            "k": {
+              ".validate": "newData.isString() && newData.val().matches(/^[a-z0-9]{3,20}$/)"
             },
             "$other": {
               ".validate": false
@@ -1215,7 +1218,7 @@ function sendMsg(){
   if(!t)return;if(!S.nick)return settings();if(!fb.ok)return toast('Sin conexión con la comunidad');
   if(Date.now()-lastMsg<1500)return toast('Espera un segundo antes de enviar otro mensaje');
   lastMsg=Date.now();
-  fb.rt.ref('chat/general').push({uid:fb.uid,nick:S.nick,color:S.color,text:t,ts:firebase.database.ServerValue.TIMESTAMP}).catch(()=>toast('No se pudo enviar. Revisa las reglas de Realtime Database.'));
+  fb.rt.ref('chat/general').push({uid:fb.uid,nick:S.nick,k:nickKey(S.nick),color:S.color,text:t,ts:firebase.database.ServerValue.TIMESTAMP}).catch(()=>toast('No se pudo enviar. Revisa las reglas de Realtime Database.'));
   i.value='';draft='';
 }
 
