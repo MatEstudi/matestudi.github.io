@@ -484,7 +484,7 @@ function clean(p){
   });
   const h=o.hist??o.dailyHistory;
   if(h&&typeof h==='object')Object.keys(h).filter(k=>/^\d{4}-\d{2}-\d{2}$/.test(k)).forEach(k=>{
-    const e={t:0};IDS.forEach(i=>{e[i]=num(h[k]?.[i],86400);e.t+=e[i]});if(e.t)b.hist[k]=e});
+    const e={t:0};IDS.forEach(i=>{e[i]=num(h[k]?.[i],86400);e.t+=e[i]});const q=IDS.map((_,j)=>Math.min(e[IDS[j]],num(h[k]?.q?.[j],86400)));if(q.some(v=>v>0))e.q=q;if(e.t)b.hist[k]=e});
   const wk=o.wk;if(wk&&typeof wk==='object')Object.keys(wk).filter(k=>/^\d{4}-\d{2}-\d{2}$/.test(k)).sort().slice(-12).forEach(k=>{const v=wk[k]||{},h=(Array.isArray(v.h)?v.h:[]).slice(0,24).map(n=>num(n,86400));while(h.length<24)h.push(0);
     const l=v.l&&IDS.includes(v.l.s)&&num(v.l.d,86400)>0?{d:num(v.l.d,86400),s:v.l.s}:null;b.wk[k]={h,f:num(v.f,604800),p:num(v.p,604800),l}});
   const ws=o.ws;if(ws&&typeof ws==='object')Object.keys(ws).filter(k=>/^\d{4}-\d{2}-\d{2}$/.test(k)&&ws[k]).sort().slice(-12).forEach(k=>{b.ws[k]=1});
@@ -512,8 +512,10 @@ addEventListener('storage',e=>{if(e.key!==KEY||!e.newValue)return;clearTimeout(s
 
 /* ---------- Tiempo ---------- */
 function addTime(id,d){
-  S.tot[id]+=d;const k=dk(),e=S.hist[k]||(S.hist[k]={t:0,fonaments:0,algebra:0,analisi:0,otros:0});e[id]+=d;e.t+=d;
-  const w=wkRec(dk(wkStart()),true);w.h[new Date().getHours()]+=d;w[S.mode==='pomo'?'p':'f']+=d;
+  S.tot[id]+=d;const t0=Date.now(),k=dk(),e=S.hist[k]||(S.hist[k]={t:0,fonaments:0,algebra:0,analisi:0,otros:0});e[id]+=d;e.t+=d;
+  /* La semana cambia el viernes a las 14:00, a mitad de un día lógico: de los viernes se guarda aparte lo estudiado antes de las 14:00 (q). */
+  if(lnow(t0).getDay()===5&&new Date(t0).getHours()<WK_H){const q=e.q||(e.q=[0,0,0,0]);q[IDS.indexOf(id)]+=d}
+  const w=wkRec(dk(wkStart(t0)),true);w.h[new Date().getHours()]+=d;w[S.mode==='pomo'?'p':'f']+=d;
 }
 /* Solo UNA pestaña puede contar tiempo: la última que pulsó Iniciar (id guardado en localStorage).
    Si otra pestaña ha tomado el relevo, esta se detiene SIN sumar nada (evita contar dos veces el mismo rato). */
@@ -537,14 +539,13 @@ function toggle(){
   render();sync(true);save(true);
 }
 function load2(){try{const r=JSON.parse(localStorage.getItem(KEY));if(r){const o=clean(r);S.tot=o.tot;S.hist=o.hist;S.sess=o.sess;S.wk=o.wk;S.ws={...S.ws,...o.ws}}}catch(e){}}
-function endSession(note){if(S.cur>=10){const at=S.curAt||Date.now();S.sess.unshift({s:S.run||S.sel,d:S.cur,at,n:note});S.sess=S.sess.slice(0,50);const w=wkRec(dk(wkStart(lnow(at))),true);if(!w.l||S.cur>w.l.d)w.l={d:S.cur,s:S.run||S.sel}}S.cur=0;S.curAt=0}
+function endSession(note){if(S.cur>=10){const at=S.curAt||Date.now();S.sess.unshift({s:S.run||S.sel,d:S.cur,at,n:note});S.sess=S.sess.slice(0,50);const w=wkRec(dk(wkStart(at)),true);if(!w.l||S.cur>w.l.d)w.l={d:S.cur,s:S.run||S.sel}}S.cur=0;S.curAt=0}
 function finish(){const had=S.cur;stop();endSession(S.mode==='pomo'?'Pomodoro':'Libre');if(had>=10)toast('Sesión guardada: '+hm(had));S.phase=0;S.rem=POMO[0];render();sync(true);save(true)}
 function bell(){try{const a=new(window.AudioContext||webkitAudioContext)(),o=a.createOscillator(),g=a.createGain();o.frequency.value=880;o.connect(g);g.connect(a.destination);g.gain.setValueAtTime(.2,a.currentTime);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+1.4);o.start();o.stop(a.currentTime+1.5)}catch(e){}}
 
 /* ---------- Estadísticas ---------- */
 function stats(){
-  const k=dk(),m=monday();let w=0;
-  Object.entries(S.hist).forEach(([d,v])=>{const[y,mo,da]=d.split('-').map(Number);if(new Date(y,mo-1,da)>=m)w+=v.t});
+  const k=dk(),m=wkStart(),w=wkParts(m).days.reduce((a,x)=>a+x.t,0);
   return{total:IDS.reduce((a,i)=>a+S.tot[i],0),today:day(k),todayKey:k,week:w,weekKey:dk(m)};
 }
 /* Racha: un día suma si se estudia al menos 1 hora (QUAL). Si hoy aún no llegas a 1 h, la racha no se pierde: cuenta hasta ayer. */
@@ -729,7 +730,7 @@ function mergeProg(a,b){
   const r={tot:{},hist:{},wk:{},ws:{}};
   IDS.forEach(i=>r.tot[i]=Math.max(a.tot[i]||0,b.tot[i]||0));
   new Set([...Object.keys(a.hist),...Object.keys(b.hist)]).forEach(k=>{
-    const x=a.hist[k]||{},y=b.hist[k]||{},e={t:0};IDS.forEach(i=>{e[i]=Math.max(x[i]||0,y[i]||0);e.t+=e[i]});if(e.t)r.hist[k]=e});
+    const x=a.hist[k]||{},y=b.hist[k]||{},e={t:0};IDS.forEach(i=>{e[i]=Math.max(x[i]||0,y[i]||0);e.t+=e[i]});const q=IDS.map((_,j)=>Math.max(x.q?.[j]||0,y.q?.[j]||0));if(q.some(v=>v>0))e.q=q;if(e.t)r.hist[k]=e});
   const wa=a.wk||{},wb=b.wk||{};
   new Set([...Object.keys(wa),...Object.keys(wb)]).forEach(k=>{const x=wa[k],y=wb[k];r.wk[k]=(!y||(x&&x.f+x.p>=y.f+y.p))?x:y});
   Object.keys(r.wk).sort().slice(0,-12).forEach(k=>delete r.wk[k]);
@@ -895,7 +896,7 @@ async function logout(){
 }
 
 function members(){
-  const tk=dk(),wk=dk(monday()),now=Date.now(),out=[];
+  const tk=dk(),wk=dk(wkStart()),now=Date.now(),out=[];
   new Set([...Object.keys(fb.users),...Object.keys(fb.pres)]).forEach(id=>{
     const me=id===fb.uid,u={...fb.users[id],...fb.pres[id]};
     if(me&&S.nick){const st=stats(),sk=streakCur();Object.assign(u,{streak:sk.n,streakEnd:sk.end,bestStreak:streakBest(sk.n),nickname:S.nick,avatarColor:S.color,totalSeconds:st.total,todaySeconds:st.today,todayDateKey:tk,weeklySeconds:st.week,weekStartKey:wk,dl:dayLogArr(),online:fb.ok,active:S.run?SUBJ[S.run].n:null,since:S.run?now+off-S.cur*1000:null,lastSeen:now,updatedAt:now})}
@@ -952,12 +953,13 @@ function weekChart(){
 function statsView(){
   const st=stats(),n=S.range,gD=S.goalD*3600,gW=S.goalW*3600;
   const td=lnow();td.setHours(0,0,0,0);
-  const ds=n===7?[...Array(7)].map((_,i)=>{const d=monday();d.setDate(d.getDate()+i);return d})
+  const wc=wkStart(),WP=wkParts(wc);
+  const ds=n===7?WP.days.map(x=>x.d)
     :[...Array(new Date(td.getFullYear(),td.getMonth()+1,0).getDate())].map((_,i)=>new Date(td.getFullYear(),td.getMonth(),i+1));
-  const N=ds.length,vals=ds.map(d=>day(dk(d))),pastN=ds.filter(d=>d<=td).length,dm1=d=>d.toLocaleDateString('es',{day:'numeric',month:'short'});
-  const rl=n===7?`Semana del ${dm1(ds[0])} al ${dm1(ds[6])}`:ds[0].toLocaleDateString('es',{month:'long',year:'numeric'}).replace(/^./,c=>c.toUpperCase());
+  const N=ds.length,vals=n===7?WP.days.map(x=>x.t):ds.map(d=>day(dk(d))),pastN=ds.filter(d=>d<=td).length,dm1=d=>d.toLocaleDateString('es',{day:'numeric',month:'short'});
+  const rl=n===7?`Semana del ${dm1(ds[0])} (14:00) al ${dm1(addD(wc,7))} (14:00)`:ds[0].toLocaleDateString('es',{month:'long',year:'numeric'}).replace(/^./,c=>c.toUpperCase());
   const mx=Math.max(gD,...vals),act=vals.filter(v=>v>0),avg=act.length?act.reduce((a,b)=>a+b,0)/act.length:0,hit=vals.filter(v=>v>=gD).length;
-  const rec=Object.values(S.hist).reduce((m,v)=>Math.max(m,v.t),0),rd=7-((lnow().getDay()+6)%7),left=Math.max(0,gW-st.week);
+  const rec=Object.values(S.hist).reduce((m,v)=>Math.max(m,v.t),0),rd=Math.max(1,(wkAt(wc,7)-Date.now())/864e5),left=Math.max(0,gW-st.week);
   const pd=Math.min(100,st.today/gD*100),pw=Math.min(100,st.week/gW*100),tot=Math.max(1,st.total);
   const ses=S.sess.slice(0,6);
   return `<div class="goals">
@@ -965,10 +967,10 @@ function statsView(){
     <small>${st.today>=gD?'Meta de hoy cumplida.':'Te faltan '+hm(gD-st.today)+' hoy.'}</small>
     <label for="qd">Horas al día</label><input type="number" id="qd" min="1" max="24" value="${S.goalD}"></div>
   <div class="card goal"><span>Meta semanal</span><br><b>${hm(st.week)} / ${S.goalW} h</b><div class="bar"><i style="width:${pw}%"></i></div>
-    <small>${left<=0?'Meta de la semana cumplida.':'Te faltan '+hm(left)+': unos '+hm(left/rd)+' al día hasta el domingo.'}</small>
+    <small>${left<=0?'Meta de la semana cumplida.':'Te faltan '+hm(left)+': unos '+hm(left/rd)+' al día hasta el viernes a las 14:00.'}</small>
     <label for="qw">Horas a la semana</label><input type="number" id="qw" min="1" max="168" value="${S.goalW}"></div></div>
   <div class="hd"><h2>Constancia</h2><div class="seg"><button data-range="7" class="${n===7?'on':''}">Semanal</button><button data-range="30" class="${n===30?'on':''}">Mensual</button></div></div>
-  <div class="card"><div class="hint" style="margin:0 0 12px;text-align:left;font-weight:600">${rl}</div><div class="week" style="gap:${n>7?3:8}px">${ds.map((d,i)=>`<div class="${d.getTime()===td.getTime()?'td':''}" title="${DAYN[d.getDay()]} ${d.getDate()}: ${hm(vals[i])}"><i style="height:${vals[i]/mx*100}%;opacity:${d>td?.12:vals[i]>=gD?1:.4}"></i>${n===7?'LMXJVSD'[i]:(d.getDate()===1||d.getDate()%5===0||d.getTime()===td.getTime()?d.getDate():'')}</div>`).join('')}</div>
+  <div class="card"><div class="hint" style="margin:0 0 12px;text-align:left;font-weight:600">${rl}</div><div class="week" style="gap:${n>7?3:8}px">${ds.map((d,i)=>`<div class="${d.getTime()===td.getTime()?'td':''}" title="${DAYN[d.getDay()]} ${d.getDate()}: ${hm(vals[i])}"><i style="height:${vals[i]/mx*100}%;opacity:${d>td?.12:vals[i]>=gD?1:.4}"></i>${n===7?'DLMXJVS'[d.getDay()]:(d.getDate()===1||d.getDate()%5===0||d.getTime()===td.getTime()?d.getDate():'')}</div>`).join('')}</div>
   <div class="hint">Las barras intensas alcanzaron tu meta diaria (${hit} de ${pastN} ${pastN===1?'día':'días'} hasta hoy).</div></div>
   <h2>Resumen</h2>
   <div class="kv"><div class="card st"><b>${hm(st.total)}</b><span>Tiempo total</span></div><div class="card st"><b>${act.length?hm(avg):'0 min'}</b><span>Media por día activo</span></div><div class="card st"><b>${hm(rec)}</b><span>Mejor día</span></div></div>
@@ -1028,10 +1030,24 @@ function moreView(){
   <h2>Todos los rangos</h2><div class="rkl">${RANKS.map((x,i)=>`<div class="card rkr${i>ri?' rlk':''}${i===ri?' cu':''}"><div class="rkb bg${i}">${x.s}</div><div class="n"><b>${x.n}</b><small>${x.h?x.h+' h de estudio':'Rango inicial'}</small></div><span class="rks">${i<ri?'✓ Conseguido':i===ri?'Actual':'🔒'}</span></div>`).join('')}</div>`;
   return h;
 }
-/* ---------- Mates Wrapped: semana de sábado a viernes; se desbloquea el viernes a las 13:50 ---------- */
+/* ---------- Mates Wrapped: semana de viernes 14:00 a viernes 14:00; se desbloquea el viernes a las 13:50 ---------- */
 const DAYN=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'],cap1=s=>s[0].toUpperCase()+s.slice(1);
-const wkStart=(d=lnow())=>{const x=new Date(d);x.setHours(0,0,0,0);x.setDate(x.getDate()-((x.getDay()+1)%7));return x};
+/* La semana va de viernes 14:00 a viernes 14:00. wkStart(t) = fecha (00:00) del viernes que abre la semana que contiene el instante t. */
+const WK_H=14;
+const wkStart=(t=Date.now())=>{t=+t;const x=new Date(t);x.setHours(0,0,0,0);const dd=(x.getDay()+2)%7;x.setDate(x.getDate()-dd);if(dd===0&&t<new Date(x).setHours(WK_H,0,0,0))x.setDate(x.getDate()-7);return x};
+const wkAt=(st,i=0)=>{const x=new Date(st);x.setDate(x.getDate()+i);x.setHours(WK_H,0,0,0);return x};
 const addD=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
+/* Semana de viernes 14:00 a viernes 14:00 a partir de los días lógicos (cada uno de 4:00 a 4:00):
+   viernes = lo de ese viernes tras las 14:00 (día − q) + lo del viernes siguiente antes de las 14:00 (q); sábado…jueves = días completos. */
+function wkParts(st){
+  const H=i=>S.hist[dk(addD(st,i))],days=[];
+  for(let i=0;i<7;i++){
+    const e=H(i);let s=IDS.map(id=>e?.[id]||0);
+    if(i===0){const q0=H(0)?.q||[],q7=H(7)?.q||[];s=s.map((v,j)=>Math.max(0,v-(q0[j]||0))+(q7[j]||0))}
+    const d=addD(st,i);days.push({d,n:DAYN[d.getDay()],s,t:s.reduce((a,b)=>a+b,0)});
+  }
+  return{days,total:days.reduce((a,x)=>a+x.t,0)};
+}
 function wkRec(k,mk){
   S.wk=S.wk||{};let w=S.wk[k];
   if(!w&&mk){w=S.wk[k]={h:Array(24).fill(0),f:0,p:0,l:null};const ks=Object.keys(S.wk).sort();while(ks.length>12)delete S.wk[ks.shift()]}
@@ -1055,25 +1071,25 @@ setInterval(()=>{document.querySelectorAll('[data-cd]').forEach(e=>{
   const d=Math.floor(r/86400),p=n=>String(n).padStart(2,'0');
   e.textContent=(d?d+'d ':'')+p(Math.floor(r%86400/3600))+'h '+p(Math.floor(r%3600/60))+'m '+p(r%60)+'s'})},1000);
 function wrapData(st){
-  const days=[...Array(7)].map((_,i)=>{const d=addD(st,i);return{d,n:DAYN[d.getDay()],t:day(dk(d))}});
-  const total=days.reduce((a,x)=>a+x.t,0),k=dk(st),w=S.wk&&S.wk[k],end=addD(st,7);
-  const sub=IDS.map(i=>({id:i,t:days.reduce((a,x)=>a+(S.hist[dk(x.d)]?.[i]||0),0)}));
-  const ss=S.sess.filter(x=>x.at>=st.getTime()+DAY_OFF&&x.at<end.getTime()+DAY_OFF);
+  const P=wkParts(st),days=P.days,total=P.total,k=dk(st),w=S.wk&&S.wk[k],t0=wkAt(st).getTime(),t1=wkAt(st,7).getTime();
+  const sub=IDS.map((i,j)=>({id:i,t:days.reduce((a,x)=>a+x.s[j],0)}));
+  const ss=S.sess.filter(x=>x.at>=t0&&x.at<t1);
   let hrs=w&&w.h.some(v=>v>0)?w.h:null,f=w?w.f:0,p=w?w.p:0;
   if(f+p===0){ss.forEach(x=>{x.n==='Pomodoro'?p+=x.d:f+=x.d})}
   let lg=w&&w.l?{d:w.l.d,s:w.l.s}:null;
   ss.forEach(x=>{if(!lg||x.d>lg.d)lg={d:x.d,s:x.s,at:x.at}});
   if(lg&&!lg.at&&ss.length){const m=ss.find(x=>x.d===lg.d&&x.s===lg.s);if(m)lg.at=m.at}
-  const pdays=[...Array(7)].map((_,i)=>addD(st,-7+i)),psub=IDS.map(i=>({id:i,t:pdays.reduce((a,d)=>a+(S.hist[dk(d)]?.[i]||0),0)})),prev=psub.reduce((a,x)=>a+x.t,0);
-  const wt={};Object.keys(S.hist).forEach(h=>{const[y,m,d]=h.split('-').map(Number),wk=dk(wkStart(new Date(y,m-1,d)));wt[wk]=(wt[wk]||0)+S.hist[h].t});
+  const PP=wkParts(addD(st,-7)),psub=IDS.map((i,j)=>({id:i,t:PP.days.reduce((a,x)=>a+x.s[j],0)})),prev=PP.total;
+  const wt={},cand=new Set();Object.keys(S.hist).forEach(h=>{const[y,m,d]=h.split('-').map(Number),c=wkStart(new Date(y,m-1,d,23));cand.add(dk(c));cand.add(dk(addD(c,-7)))});
+  cand.forEach(c=>{const[y,m,d]=c.split('-').map(Number),v=wkParts(new Date(y,m-1,d)).total;if(v>0)wt[c]=v});
   return{days,total,sub,hrs,f,p,lg,k,ss,prev,psub,wt};
 }
-/* ---------- Mates Wrapped: comunidad. Cada perfil publica ww = resumen de sus últimas 9 semanas (sábado a viernes) ---------- */
+/* ---------- Mates Wrapped: comunidad. Cada perfil publica ww = resumen de sus últimas 9 semanas (viernes 14:00 a viernes 14:00) ---------- */
 function wkSnap(st){
-  const ks=[...Array(7)].map((_,i)=>dk(addD(st,i))),sb=IDS.map(i=>ks.reduce((a,k)=>a+(S.hist[k]?.[i]||0),0));
-  const sn=sb.map(v=>num(v,604800));return{k:dk(st),t:sn.reduce((a,b)=>a+b,0),s:sn,d:ks.map(k=>num(day(k),86400))};
+  const P=wkParts(st),sn=IDS.map((_,j)=>num(P.days.reduce((a,x)=>a+x.s[j],0),604800));
+  return{k:dk(st),t:sn.reduce((a,b)=>a+b,0),s:sn,d:P.days.map(x=>num(x.t,86400))};
 }
-const wkSnaps=()=>{const c=wkStart(lnow());return[...Array(9)].map((_,i)=>wkSnap(addD(c,-7*i)))};
+const wkSnaps=()=>{const c=wkStart();return[...Array(9)].map((_,i)=>wkSnap(addD(c,-7*i)))};
 function commParts(st){
   const k=dk(st),rows=[];
   members().forEach(m=>{
@@ -1113,16 +1129,16 @@ function commParts(st){
 }
 function wrapView(){
   wrapLast=null;
-  const now=new Date(),cs=wkStart(lnow()),ut=addD(cs,6);ut.setHours(13,50,0,0);if(WRAP_SECS){wrapT0=wrapT0||Date.now()+WRAP_SECS*1000;ut.setTime(wrapT0)}const unl=now>=ut,latest=unl?cs:addD(cs,-7);
+  const now=new Date(),cs=wkStart(),ut=new Date(wkAt(cs,7)-10*6e4);if(WRAP_SECS){wrapT0=wrapT0||Date.now()+WRAP_SECS*1000;ut.setTime(wrapT0)}const unl=now>=ut,latest=unl?cs:addD(cs,-7);
   wrapOff=Math.min(7,Math.max(0,wrapOff));
-  const st=addD(latest,-7*wrapOff),en=addD(st,6),dm=d=>d.toLocaleDateString('es',{day:'numeric',month:'short'});
+  const st=addD(latest,-7*wrapOff),en=addD(st,7),dm=d=>d.toLocaleDateString('es',{day:'numeric',month:'short'});
   let h='';
   if(!unl){
     wrapReveal=true; /* si el contador estaba en marcha, al llegar a cero toca el botón Comenzar aunque la semana ya se hubiera visto */
-    const ce=addD(cs,6),pr=WRAP_SECS?Math.min(1,Math.max(0,1-(ut-now)/(WRAP_SECS*1000))):Math.min(1,Math.max(0,(now-cs-DAY_OFF)/(ut-cs-DAY_OFF)));
+    const ce=addD(cs,7),s0=wkAt(cs),pr=WRAP_SECS?Math.min(1,Math.max(0,1-(ut-now)/(WRAP_SECS*1000))):Math.min(1,Math.max(0,(now-s0)/(ut-s0)));
     h+=`<div class="card lockc"><div class="lkc">🔒</div><small class="k">Semana del ${dm(cs)} al ${dm(ce)}</small><div class="big">Tu semana tiene algo que contarte</div><div class="cd" data-cd="${ut.getTime()}">--</div><div class="bar"><i style="width:${pr*100}%"></i></div><div class="cap">${WRAP_SECS?'Se revela en unos segundos…':'Se revela el viernes a las 13:50. Hasta entonces, sigue estudiando…'}</div></div>`;
   }
-  h+=`<div class="wnav"><button data-wo="1" aria-label="Semana anterior" ${wrapOff>=7?'disabled':''}>‹</button><div style="text-align:center"><b>Semana del ${dm(st)} al ${dm(en)}</b><div class="hint" style="margin:0">Sábado a viernes</div></div><button data-wo="-1" aria-label="Semana siguiente" ${wrapOff<=0?'disabled':''}>›</button></div>`;
+  h+=`<div class="wnav"><button data-wo="1" aria-label="Semana anterior" ${wrapOff>=7?'disabled':''}>‹</button><div style="text-align:center"><b>Semana del ${dm(st)} al ${dm(en)}</b><div class="hint" style="margin:0">Viernes 14:00 a viernes 14:00</div></div><button data-wo="-1" aria-label="Semana siguiente" ${wrapOff<=0?'disabled':''}>›</button></div>`;
   const D=wrapData(st);
   if(!D.total)return h+`<div class="card empty">No estudiaste esta semana, así que no hay Wrapped.<br>La próxima será.</div>`;
   const act=D.days.filter(x=>x.t>0).length,C=commParts(st);
@@ -1189,7 +1205,7 @@ function wrapView(){
   }
   wrapLast={k:D.k,wo:wrapOff,html:h.slice(i0)+'</div>',label:`Semana del ${dm(st)} al ${dm(en)}`};
   if(pend)return h.slice(0,i0);
-  return h+'</div><div class="hint">El Wrapped se desbloquea cada viernes a las 13:50 y cuenta de sábado a viernes.'+(C?' Los datos de la comunidad se actualizan cuando cada persona pausa el cronómetro o cierra la app.':'')+'</div>';
+  return h+'</div><div class="hint">El Wrapped se desbloquea cada viernes a las 13:50 y cuenta de viernes a las 14:00 a viernes a las 14:00 (los últimos 10 minutos aún suman).'+(C?' Los datos de la comunidad se actualizan cuando cada persona pausa el cronómetro o cierra la app.':'')+'</div>';
 }
 
 /* ---------- Mates Wrapped: modo tarjetas. La primera vez que se ve una semana salen una a una y al final queda el resumen completo ---------- */
