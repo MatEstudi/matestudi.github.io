@@ -8,6 +8,112 @@
 <script>document.documentElement.dataset.t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<!--
+REGLAS RECOMENDADAS (Firebase Console)
+Authentication > Método de acceso: activar "Anónimo" y "Correo electrónico/contraseña" (las cuentas usan un correo interno <nombre>@mathstudy.app).
+Firestore:
+  match /databases/{db}/documents { match /users/{uid} {
+    function ok() { return request.resource.data.nickname is string && (request.resource.data.nickname == '' || (request.resource.data.nickname.size() >= 3 && request.resource.data.nickname.size() <= 20 && request.resource.data.nickname.matches('^[A-Za-z0-9ÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜÝàáâãäåçèéêëìíîïñòóôõöùúûüýÿ]+( [A-Za-z0-9ÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜÝàáâãäåçèéêëìíîïñòóôõöùúûüýÿ]+)*$')))
+      && request.resource.data.todaySeconds <= 86400 && request.resource.data.totalSeconds >= 0; }
+    allow read: if request.auth != null;
+    allow create: if request.auth.uid == uid && ok() && request.resource.data.estaVerificado == false;
+    allow update: if request.auth.uid == uid && ok()
+      && request.resource.data.get('estaVerificado', false) == resource.data.get('estaVerificado', false);
+    allow delete: if request.auth.uid == uid; }
+    match /progress/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if request.auth != null && request.auth.uid == uid && request.resource.data.data is string && request.resource.data.data.size() < 500000; } }
+  (Para verificar a alguien: Firebase Console > Firestore > users > documento de esa persona > estaVerificado = true.
+   Ningun usuario puede cambiar ese campo desde la app: las reglas lo bloquean.)
+Realtime Database (publica estas reglas en Realtime Database > Reglas; son JSON válido):
+  {
+    "rules": {
+      "presence": {
+        ".read": "auth!=null",
+        ".indexOn": [
+          "lastSeen"
+        ],
+        "$uid": {
+          ".write": "auth!=null && (auth.uid===$uid || (data.exists() && !newData.exists() && data.child('lastSeen').val() < now-2592000000))",
+          "online": {
+            ".validate": "newData.isBoolean()"
+          },
+          "lastSeen": {
+            ".validate": "newData.isNumber()"
+          },
+          "since": {
+            ".validate": "newData.isNumber()"
+          },
+          "nickname": {
+            ".validate": "newData.isString() && newData.val().length>=3 && newData.val().length<=20 && newData.val().matches(/^[A-Za-z0-9ÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜÝàáâãäåçèéêëìíîïñòóôõöùúûüýÿ]+( [A-Za-z0-9ÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜÝàáâãäåçèéêëìíîïñòóôõöùúûüýÿ]+)*$/)"
+          },
+          "avatarColor": {
+            ".validate": "newData.isString() && newData.val().length<=7"
+          },
+          "active": {
+            ".validate": "newData.isString() && newData.val().length<=30"
+          },
+          "$other": {
+            ".validate": false
+          }
+        }
+      },
+      "cheers": {
+        ".read": "auth!=null",
+        "$target": {
+          "$from": {
+            ".write": "auth!=null && auth.uid===$from && auth.token.firebase.sign_in_provider!=='anonymous'",
+            ".validate": "newData.isString() && newData.val().matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)"
+          }
+        }
+      },
+      "nicks": {
+        "$key": {
+          ".read": "auth!=null",
+          ".write": "auth!=null && ((newData.exists() && newData.child('uid').val()===auth.uid && (!data.exists() || data.child('uid').val()===auth.uid || data.child('ts').val() < now-2592000000)) || (!newData.exists() && data.child('uid').val()===auth.uid))",
+          ".validate": "$key.matches(/^[a-z0-9]{3,20}$/) && newData.hasChildren(['uid','nick','ts']) && newData.child('nick').isString() && newData.child('nick').val().length<=20 && newData.child('ts').val()===now",
+          "uid": { ".validate": "newData.val()===auth.uid" },
+          "nick": { ".validate": true },
+          "ts": { ".validate": true },
+          "$other": { ".validate": false }
+        }
+      },
+      "chat": {
+        "general": {
+          ".read": "auth!=null",
+          ".indexOn": [
+            "ts"
+          ],
+          "$id": {
+            ".write": "auth!=null && ((!data.exists() && newData.child('uid').val()===auth.uid && auth.token.firebase.sign_in_provider!=='anonymous' && root.child('nicks').child(newData.child('k').val()).child('uid').val()===auth.uid && root.child('nicks').child(newData.child('k').val()).child('nick').val()===newData.child('nick').val()) || (data.exists() && !newData.exists() && (data.child('uid').val()===auth.uid || data.child('ts').val() < now-604800000)))",
+            ".validate": "newData.hasChildren(['uid','nick','text','ts','color','k']) && newData.child('text').isString() && newData.child('text').val().length>0 && newData.child('text').val().length<=300 && newData.child('nick').isString() && newData.child('nick').val().length>=3 && newData.child('nick').val().length<=20 && newData.child('nick').val().matches(/^[A-Za-z0-9ÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜÝàáâãäåçèéêëìíîïñòóôõöùúûüýÿ]+( [A-Za-z0-9ÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜÝàáâãäåçèéêëìíîïñòóôõöùúûüýÿ]+)*$/) && newData.child('color').isString() && newData.child('color').val().length<=7 && newData.child('ts').val()===now",
+            "uid": {
+              ".validate": true
+            },
+            "nick": {
+              ".validate": true
+            },
+            "text": {
+              ".validate": true
+            },
+            "ts": {
+              ".validate": true
+            },
+            "color": {
+              ".validate": true
+            },
+            "k": {
+              ".validate": "newData.isString() && newData.val().matches(/^[a-z0-9]{3,20}$/)"
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        }
+      }
+    }
+  }
+-->
 <style>
 :root{--bg:#f5f6fa;--card:#fff;--ink:#161a2e;--mut:#6b7190;--line:#e6e8f0;--acc:#6366f1;--soft:color-mix(in srgb,var(--acc) 11%,transparent);--r:22px;
 --f1:'Bricolage Grotesque','Trebuchet MS',system-ui,sans-serif;--f2:'Instrument Sans',system-ui,-apple-system,'Segoe UI',sans-serif}
@@ -289,6 +395,83 @@ button.chr:hover{border-color:var(--acc)}
 @keyframes rkt3{to{background-position:300% 0}}
 @media(prefers-reduced-motion:reduce){.rkt.r4,.rkt.r5{animation:none}}
 
+/* Tarjetas de rango: ℕ es la tarjeta básica (sin decoración); cada rango siguiente suma la suya */
+.rk .dc{position:absolute;pointer-events:none;z-index:0}
+.rk.k1,.rk.k2,.rk.k3,.rk.k4,.rk.k5{text-shadow:0 1px 10px rgba(0,0,0,.2)}
+/* ℤ Enteros: recta numérica */
+.rk.k1{padding-bottom:74px}
+.rk.k1::before{top:-44px;bottom:auto}
+.rk.k1 .dc{left:0;right:0;bottom:12px;width:100%;height:48px}
+/* ℚ Racionales: fracciones y barra en décimos */
+
+.rk.k2{padding-bottom:92px;background:radial-gradient(circle at 88% 6%,rgba(244,114,182,.55),transparent 48%),linear-gradient(150deg,#8b5cf6,#6d28d9 55%,#be185d)}
+.rk.k2::before{content:'\00BD';top:-44px;bottom:auto}
+.rk.k2 .dc{left:0;right:0;bottom:14px;width:100%;height:64px}
+.rk.k2 .sym{display:inline-block;background:linear-gradient(180deg,#fff 0 47%,transparent 47% 53%,#fbcfe8 53%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;text-shadow:none;filter:drop-shadow(0 4px 14px rgba(0,0,0,.25)) drop-shadow(0 0 10px rgba(244,114,182,.55))}
+.rk.k2 .sym::after{content:'';position:absolute;left:-12px;right:-12px;top:50%;height:4px;margin-top:-2px;border-radius:3px;background:#fff}
+
+/* 𝕀 Irracionales: decimales de π que no se repiten */
+.rk.k3::before{content:'\03C0'}
+.rk .dc.pi{left:0;right:0;top:0;bottom:0;overflow:hidden;padding:10px 12px;font:600 15px/1.7 var(--f1);letter-spacing:.34em;word-break:break-all;color:#fff;opacity:.17;-webkit-mask:linear-gradient(180deg,#000 20%,transparent 92%);mask:linear-gradient(180deg,#000 20%,transparent 92%)}
+/* ℝ Reales: la recta continua y una curva sin saltos */
+.rk.k4::after,.rk.k5::after{content:none}
+.rk.k4 .dc{inset:0;width:100%;height:100%}
+.rk.k4 .gr{background:linear-gradient(rgba(255,255,255,.14) 1px,transparent 1px) 0 0/26px 26px,linear-gradient(90deg,rgba(255,255,255,.14) 1px,transparent 1px) 0 0/26px 26px;-webkit-mask:radial-gradient(ellipse at 50% 50%,#000 25%,transparent 78%);mask:radial-gradient(ellipse at 50% 50%,#000 25%,transparent 78%)}
+.rk.k4 .cv{stroke-dasharray:1;stroke-dashoffset:0;animation:rkdraw 1.8s .15s ease-out backwards}
+@keyframes rkdraw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+/* ℂ Complejos: plano complejo con e^{iθ} girando sobre la circunferencia unidad */
+.rk.k5::before{content:'i'}
+.rk.k5 .dc{left:50%;top:50%;width:250px;height:250px;margin:-125px 0 0 -125px;opacity:.6}
+.rk.k5 .orb{transform-box:view-box;transform-origin:125px 125px;animation:rkorb 16s linear infinite}
+@keyframes rkorb{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.rk.k4 .cv,.rk.k5 .orb{animation:none}}
+
+/* Animaciones de la tarjeta grande desde 𝕀: decimales que suben, pulso que recorre la curva (ℂ ya gira) */
+.rk .dc.pi .mv{animation:rkpi 40s linear infinite}
+@keyframes rkpi{to{transform:translateY(-50%)}}
+.rk.k4 .cv2{stroke-dasharray:.05 .95;stroke-dashoffset:0;opacity:.95;filter:drop-shadow(0 0 5px #fff);animation:rkrun 5s 1.9s linear infinite backwards}
+@keyframes rkrun{from{stroke-dashoffset:0}to{stroke-dashoffset:-1}}
+
+/* Comunidad: el fondo de cada tarjeta (Amigos y Ranking) sigue el rango de la persona. ℕ = fondo normal, blanco. */
+.rc{position:relative;overflow:hidden}
+.rc>*{position:relative;z-index:1}
+.rcx::before,.rcx::after{content:'';position:absolute;pointer-events:none;z-index:0}
+.rcx{color:#fff;border-color:transparent;text-shadow:0 1px 6px rgba(0,0,0,.2)}
+.rcx::after{font:700 88px/1 var(--f1);left:36%;top:50%;transform:translateY(-50%);color:#fff;opacity:.13;text-shadow:none}
+.rcx small,.rcx .pos,.rcx .fs span,.rcx .m0 small{color:rgba(255,255,255,.82)}
+.rcx .live,.rcx .m0 small.live,.rcx .el{color:#bbf7d0}
+.rcx .fs{border-top-color:rgba(255,255,255,.3)}
+.rcx .stk,:root[data-t=dark] .rcx .stk{background:rgba(255,255,255,.2);color:#fff}
+.rcx .chr{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.4)}
+.rcx .chr b,.rcx .chr.on b{color:#fff}
+.rcx .chr.on{background:rgba(255,255,255,.34);border-color:#fff}
+.rcx .rkt[title]{background:none;-webkit-background-clip:border-box;background-clip:border-box;-webkit-text-fill-color:#fff;color:#fff;filter:none;animation:none}
+.rcx .av{box-shadow:0 0 0 2px rgba(255,255,255,.85)}
+.rcx .av.on::after{border-color:#fff}
+.rcx .vt{filter:drop-shadow(0 0 1.5px #fff)}
+.rcx>.bgf{opacity:calc(var(--fo,.12)*.5)}
+.rc1{background:linear-gradient(135deg,#38bdf8,#2563eb 62%,#1e3a8a)}
+.rc1::before{left:0;right:0;bottom:6px;height:9px;opacity:.85;background:linear-gradient(rgba(255,255,255,.55),rgba(255,255,255,.55)) 0 50%/100% 2px no-repeat,repeating-linear-gradient(90deg,rgba(255,255,255,.55) 0 2px,transparent 2px 24px) 12px 0/100% 100%}
+.rc1::after{content:'\2124'}
+.rc2{background:linear-gradient(135deg,#a78bfa,#7c3aed 55%,#db2777)}
+.rc2::before{left:0;right:0;bottom:5px;height:10px;background:repeating-linear-gradient(90deg,rgba(255,255,255,.32) 0 calc(25% - 3px),transparent calc(25% - 3px) 25%) 0 100%/100% 4px no-repeat,repeating-linear-gradient(90deg,rgba(255,255,255,.32) 0 calc(50% - 3px),transparent calc(50% - 3px) 50%) 0 0/100% 4px no-repeat}
+.rc2 .rkt[title]{position:relative;background:linear-gradient(180deg,#fff 0 46%,transparent 46% 54%,#fbcfe8 54%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;filter:drop-shadow(0 0 4px rgba(244,114,182,.7))}
+.rc2 .rkt[title]::after{content:'';position:absolute;left:-1px;right:-1px;top:50%;height:1.5px;margin-top:-.75px;border-radius:1px;background:#fff}
+.rc2::after{content:'\00BD'}
+.rc3{background:linear-gradient(135deg,#2dd4bf,#0d9488 55%,#065f46)}
+.rc3::before{content:'3.14159265358979323846264338327950288419716939937510582097494459230781640628620899862803482534211706798214808651328230664709384460955058223172535940812848111745028410270193852110555964462294895493038196\A 3.14159265358979323846264338327950288419716939937510582097494459230781640628620899862803482534211706798214808651328230664709384460955058223172535940812848111745028410270193852110555964462294895493038196';white-space:pre-wrap;inset:auto;top:3px;left:8px;right:8px;font:600 12px/1.55 var(--f1);letter-spacing:.3em;word-break:break-all;color:rgba(255,255,255,.16);text-shadow:none;animation:rcpi 36s linear infinite}
+.rc3::after{content:'\03C0'}
+.rc4{background:linear-gradient(110deg,#f59e0b,#f97316 40%,#ec4899)}
+.rc4::before{inset:0 -80px 0 0;animation:rcwave 3.5s linear infinite;background:linear-gradient(rgba(255,255,255,.35),rgba(255,255,255,.35)) 0 50%/100% 1.5px no-repeat,url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='80'%20height='40'%20viewBox='0%200%2080%2040'%3E%3Cpath%20d='M0%2020C10%204%2030%204%2040%2020S70%2036%2080%2020'%20fill='none'%20stroke='white'%20stroke-opacity='.32'%20stroke-width='2'/%3E%3C/svg%3E") 0 50%/80px 40px repeat-x}
+.rc4::after{content:'\211D'}
+.rc5{background:radial-gradient(circle at 12% 15%,rgba(56,189,248,.4),transparent 45%),radial-gradient(circle at 90% 95%,rgba(236,72,153,.4),transparent 45%),radial-gradient(rgba(255,255,255,.5) 1px,transparent 1.5px) 0 0/24px 24px,linear-gradient(135deg,#0f0a2e,#1e1b4b 55%,#312e81)}
+.rc5::before{inset:0;background:radial-gradient(circle at 60% 50%,transparent 0 20px,rgba(255,255,255,.3) 20px 21.5px,transparent 22px),linear-gradient(90deg,transparent calc(60% - 36px),rgba(255,255,255,.35) calc(60% - 36px) calc(60% + 36px),transparent calc(60% + 36px)) 0 50%/100% 1.5px no-repeat,linear-gradient(rgba(255,255,255,.35),rgba(255,255,255,.35)) calc(60% - .75px) 50%/1.5px 72px no-repeat}
+
+.rc5::after{left:calc(60% - 23.5px);right:auto;top:calc(50% - 23.5px);width:47px;height:47px;transform:none;opacity:1;background:radial-gradient(circle at calc(100% - 3px) 50%,#fff 0 2.5px,transparent 3.5px),linear-gradient(rgba(255,255,255,.55),rgba(255,255,255,.55)) 23.5px 50%/20.5px 1.5px no-repeat;animation:rcspin 9s linear infinite}
+@keyframes rcpi{to{transform:translateY(-50%)}}
+@keyframes rcwave{to{transform:translateX(-80px)}}
+@keyframes rcspin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.rc3::before,.rc4::before,.rc5::after,.rk .dc.pi .mv,.rk.k4 .cv2{animation:none}}
 .stv{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;background:radial-gradient(700px 420px at 50% -80px,color-mix(in srgb,var(--acc) 28%,transparent),transparent),var(--bg);padding:calc(env(safe-area-inset-top) + 14px) 18px calc(env(safe-area-inset-bottom) + 16px);animation:stin .3s ease}
 .stp{display:flex;gap:4px;max-width:420px;width:100%;margin:0 auto}
 .stp i{flex:1;height:4px;border-radius:4px;background:var(--line);transition:background .3s}.stp i.on{background:var(--acc)}
@@ -881,7 +1064,7 @@ function cheerBtn(m,nm){
 function friend(m){
   const st=m.act?`<small class="live">Estudiando ${esc(m.act)}</small>`:m.on?'<small class="live">En línea</small>':`<small>Última conexión ${ago(m.seen)}</small>`;
   const sk=m.streak?`<span class="stk" title="Racha: ${dias(m.streak)} seguidos (mín. 1 h al día)">${FL}${m.streak}</span>`:'';
-  return `<div class="card fc ${m.me?'me1':''}${fireCls(m.streak)}" style="${fireVar(m.streak)}">${fireBg(m.streak)}<div class="m0"><div class="av ${m.on?'on':''}" style="background:${m.color}">${esc(m.nick[0].toUpperCase())}</div>
+  return `<div class="card fc ${m.me?'me1':''}${rcCls(m)}${fireCls(m.streak)}" style="${fireVar(m.streak)}">${fireBg(m.streak)}<div class="m0"><div class="av ${m.on?'on':''}" style="background:${m.color}">${esc(m.nick[0].toUpperCase())}</div>
   <div class="n"><b>${esc(m.nick)}${isVer(m.id)?TICK:''}${rkT(m.total)}${m.me?' (tú)':''}</b>${st}</div>${sk}${m.act&&m.since?`<div class="el" data-s="${m.since}" title="Tiempo en esta sesión">${clock((sNow()-m.since)/1000)}</div>`:''}${cheerBtn(m)}</div>
   <div class="fs"><div><b>${hm(m.daily)}</b><span>Hoy</span></div><div><b>${hm(m.weekly)}</b><span>Semana</span></div><div><b>${hm(m.total)}</b><span>Total</span></div></div></div>`;
 }
@@ -913,12 +1096,20 @@ const RANKS=[
   {s:'𝕀',n:'Irracionales',h:100,d:'Decimales infinitos que nunca se repiten: π, e, √2…'},
   {s:'ℝ',n:'Reales',h:160,d:'La recta completa. Sin huecos.'},
   {s:'ℂ',n:'Complejos',h:260,d:'Ya no cabes en una recta: saltas al plano. Aquí √−1 existe.'}];
+/* Decoración de la tarjeta de cada rango (el índice coincide con RANKS; ℕ no lleva) */
+const RKDECO=['',
+  `<svg class="dc" viewBox="0 0 360 48" aria-hidden="true"><g stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity=".9"><path d="M10 18H350"/><path d="M16 11L9 18l7 7"/><path d="M344 11l7 7-7 7"/><path d="M30 14v8M80 14v8M130 14v8M230 14v8M280 14v8M330 14v8"/><path d="M180 9v18" stroke-width="3"/></g><circle cx="180" cy="18" r="5" fill="#fff"/><g fill="#fff" text-anchor="middle" style="font:600 13px var(--f1)"><text x="30" y="42">\u22123</text><text x="80" y="42">\u22122</text><text x="130" y="42">\u22121</text><text x="180" y="42">0</text><text x="230" y="42">1</text><text x="280" y="42">2</text><text x="330" y="42">3</text></g></svg>`,
+  `<svg class="dc" viewBox="0 0 360 64" aria-hidden="true"><g fill="#fff" fill-opacity=".24"><rect x="10.0" y="0" width="340.0" height="13" rx="3"/><rect x="10.0" y="17" width="168.5" height="13" rx="3"/><rect x="181.5" y="17" width="168.5" height="13" rx="3"/><rect x="10.0" y="34" width="111.3" height="13" rx="3"/><rect x="124.3" y="34" width="111.3" height="13" rx="3"/><rect x="238.7" y="34" width="111.3" height="13" rx="3"/><rect x="10.0" y="51" width="82.8" height="13" rx="3"/><rect x="95.8" y="51" width="82.8" height="13" rx="3"/><rect x="181.5" y="51" width="82.8" height="13" rx="3"/><rect x="267.2" y="51" width="82.8" height="13" rx="3"/></g><g fill="#fff" fill-opacity=".95" text-anchor="middle" style="font:600 10px var(--f1)"><text x="180.0" y="10">1</text><text x="94.2" y="27">\u00BD</text><text x="265.8" y="27">\u00BD</text><text x="65.7" y="44">\u2153</text><text x="180.0" y="44">\u2153</text><text x="294.3" y="44">\u2153</text><text x="51.4" y="61">\u00BC</text><text x="137.1" y="61">\u00BC</text><text x="222.9" y="61">\u00BC</text><text x="308.6" y="61">\u00BC</text></g></svg>`,
+  `<div class="dc pi" aria-hidden="true"><div class="mv"><div>3.14159265358979323846264338327950288419716939937510582097494459230781640628620899862803482534211706798214808651328230664709384460955058223172535940812848111745028410270193852110555964462294895493038196</div><div>3.14159265358979323846264338327950288419716939937510582097494459230781640628620899862803482534211706798214808651328230664709384460955058223172535940812848111745028410270193852110555964462294895493038196</div></div></div>`,
+  `<div class="dc gr"></div><svg class="dc" viewBox="0 0 360 240" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><path d="M-10 120H370" stroke="#fff" stroke-width="2" opacity=".4"/><path class="cv" pathLength="1" d="M-10 120C20 50 60 50 90 120S150 190 180 120 240 50 270 120 330 190 370 120" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".42"/><path class="cv2" pathLength="1" d="M-10 120C20 50 60 50 90 120S150 190 180 120 240 50 270 120 330 190 370 120" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round"/></svg>`,
+  `<svg class="dc" viewBox="0 0 250 250" aria-hidden="true"><g fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round"><path d="M10 125H240M125 10V240" stroke-opacity=".5" stroke-width="1.5"/><path d="M233 119l7 6-7 6M119 17l6-7 6 7" stroke-opacity=".6" stroke-width="1.5"/><circle cx="125" cy="125" r="82" stroke-opacity=".5" stroke-width="1.5" stroke-dasharray="3 5"/></g><g fill="#fff" fill-opacity=".85" style="font:italic 600 13px var(--f1)"><text x="226" y="114">Re</text><text x="133" y="22">Im</text></g><g class="orb"><path d="M125 125H207" stroke="#fff" stroke-width="2" stroke-linecap="round"/><circle cx="207" cy="125" r="9" fill="#fff" fill-opacity=".25"/><circle cx="207" cy="125" r="5" fill="#fff"/></g></svg>`];
+const rcCls=m=>{const i=rankOf(m.total);return ' rc rc'+i+(i?' rcx':'')};
 const rkT=sec=>{const i=rankOf(sec);return `<span class="rkt r${i}" title="Rango: ${RANKS[i].n}">${RANKS[i].s}</span>`};
 const rankOf=sec=>RANKS.reduce((a,r,i)=>sec>=r.h*3600?i:a,0);
 function moreView(){
   const tot=stats().total,ri=rankOf(tot),r=RANKS[ri],nx=RANKS[ri+1];
   const pr=nx?Math.min(100,(tot-r.h*3600)/((nx.h-r.h)*3600)*100):100;
-  let h=`<div class="card rk bg${ri}" data-s="${r.s}"><small class="k">Tu rango</small><div class="sym">${r.s}</div><div class="big">${r.n}</div><div class="cap">${r.d}</div>
+  let h=`<div class="card rk k${ri} bg${ri}" data-s="${r.s}">${RKDECO[ri]}<small class="k">Tu rango</small><div class="sym">${r.s}</div><div class="big">${r.n}</div><div class="cap">${r.d}</div>
     <div class="rkp"><i style="width:${pr}%"></i></div>
     <div class="cap" style="margin-top:8px">${nx?`${hm(tot)} de ${nx.h} h · te faltan ${hm(nx.h*3600-tot)} para ${nx.s} ${nx.n}`:`${hm(tot)} estudiadas · has llegado al rango máximo`}</div></div>
   <h2>Todos los rangos</h2><div class="rkl">${RANKS.map((x,i)=>`<div class="card rkr${i>ri?' rlk':''}${i===ri?' cu':''}"><div class="rkb bg${i}">${x.s}</div><div class="n"><b>${x.n}</b><small>${x.h?x.h+' h de estudio':'Rango inicial'}</small></div><span class="rks">${i<ri?'✓ Conseguido':i===ri?'Actual':'🔒'}</span></div>`).join('')}</div>`;
@@ -1186,7 +1377,7 @@ function group(){
   const tabs=[['daily','Hoy'],['weekly','Semana'],['total','Total'],['streak','Racha']],sr=S.rank==='streak';
   ms.sort((a,b)=>sr?(b.streak-a.streak||b.best-a.best||b.total-a.total):b[S.rank]-a[S.rank]);
   h+=`<div class="seg" style="margin:0 0 14px">${tabs.map(([k,l])=>`<button data-rank="${k}" class="${S.rank===k?'on':''}">${l}</button>`).join('')}</div>`;
-  h+=ms.length?`<div class="list">${ms.map((m,i)=>`<div class="m ${m.me?'me1':''}${fireCls(m.streak)}" style="${fireVar(m.streak)}">${fireBg(m.streak)}<div class="pos">${(!sr||m.streak>0)&&['🥇','🥈','🥉'][i]||i+1}</div>
+  h+=ms.length?`<div class="list">${ms.map((m,i)=>`<div class="m ${m.me?'me1':''}${rcCls(m)}${fireCls(m.streak)}" style="${fireVar(m.streak)}">${fireBg(m.streak)}<div class="pos">${(!sr||m.streak>0)&&['🥇','🥈','🥉'][i]||i+1}</div>
   <div class="av ${m.on?'on':''}" style="background:${m.color}">${esc(m.nick[0].toUpperCase())}</div>
   <div class="n"><b>${esc(m.nick)}${isVer(m.id)?TICK:''}${rkT(m.total)}${m.me?' (tú)':''}</b><small class="${!sr&&m.act?'live':''}">${sr?'Récord: '+dias(m.best):m.act?'Estudiando '+esc(m.act):m.on?'En línea':'Visto '+ago(m.seen)}</small></div><div class="t">${sr?FL+' '+dias(m.streak):hm(m[S.rank])}</div></div>`).join('')}</div>${sr?'<div class="hint">Ranking por racha actual. Un día suma si estudias 1 h o más. El borde de fuego aparece en el día 5 y llega al máximo en el día 30.</div>':''}`
     :`<div class="empty">Todavía no hay nadie en el ranking.<br>Empieza a estudiar y serás el primero.</div>`;
