@@ -462,14 +462,20 @@ addEventListener('pagehide',()=>{if(freeze)return;save(true);sync(true,true)});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&!freeze)save(true)});
 document.addEventListener('visibilitychange',()=>syncListeners());
 /* Varias pestañas: la que arranca el cronómetro manda; las demás se actualizan y se pausan. */
-addEventListener('storage',e=>{if(e.key!==KEY||!e.newValue)return;const v=S.view,g=S.gv,r=S.rank,c=S.cur,ca=S.curAt,ph=S.phase,rm=S.rem;load();S.view=v;S.gv=g;S.rank=r;S.cur=c;S.curAt=ca;S.phase=ph;S.rem=rm;stop();render();sync()});
+addEventListener('storage',e=>{if(e.key!==KEY||!e.newValue)return;clearTimeout(saveT);const v=S.view,g=S.gv,r=S.rank,c=S.cur,ca=S.curAt,ph=S.phase,rm=S.rem;load();S.view=v;S.gv=g;S.rank=r;S.cur=c;S.curAt=ca;S.phase=ph;S.rem=rm;stop();render();sync()});
 
 /* ---------- Tiempo ---------- */
 function addTime(id,d){
   S.tot[id]+=d;const k=dk(),e=S.hist[k]||(S.hist[k]={t:0,fonaments:0,algebra:0,analisi:0,otros:0});e[id]+=d;e.t+=d;
   const w=wkRec(dk(wkStart()),true);w.h[new Date().getHours()]+=d;w[S.mode==='pomo'?'p':'f']+=d;
 }
+/* Solo UNA pestaña puede contar tiempo: la última que pulsó Iniciar (id guardado en localStorage).
+   Si otra pestaña ha tomado el relevo, esta se detiene SIN sumar nada (evita contar dos veces el mismo rato). */
+const TAB=Math.random().toString(36).slice(2),LOCK=KEY+'_runner';
+const takeRun=()=>{try{localStorage.setItem(LOCK,JSON.stringify({id:TAB,t:Date.now()}))}catch(e){}};
+const ownsRun=()=>{try{const l=JSON.parse(localStorage.getItem(LOCK));return !l||l.id===TAB}catch(e){return true}};
 function tick(){
+  if(S.run&&!ownsRun()){clearTimeout(saveT);stop();render();toast('Otra pestaña está contando el tiempo. Esta se ha pausado.');return}
   const now=Date.now(),d=Math.floor((now-last)/1000);if(d<1||!S.run)return;last+=d*1000;
   if(S.mode==='free'){S.cur+=d;S.curAt=now;addTime(S.run,d)}
   else{S.rem-=d;if(S.phase===0){S.cur+=d;S.curAt=now;addTime(S.run,d)}
@@ -481,7 +487,7 @@ function start(){if(!loop){last=Date.now();loop=setInterval(tick,300)}}
 function stop(){clearInterval(loop);loop=null;S.run=null}
 function toggle(){
   if(S.run){stop();toast('Pausado')}
-  else{load2();S.run=S.sel;start()}
+  else{load2();takeRun();S.run=S.sel;start()}
   render();sync(true);save(true);
 }
 function load2(){try{const r=JSON.parse(localStorage.getItem(KEY));if(r){const o=clean(r);S.tot=o.tot;S.hist=o.hist;S.sess=o.sess;S.wk=o.wk;S.ws={...S.ws,...o.ws}}}catch(e){}}
@@ -1296,7 +1302,7 @@ document.addEventListener('keydown',e=>{if(e.key!=='Enter')return;if(e.target.id
 const spaceOk=e=>e.code==='Space'&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&S.view==='study'&&!$('#dlg').open&&!e.target.closest('input,textarea,select,[contenteditable]');
 document.addEventListener('keydown',e=>{if(!spaceOk(e))return;e.preventDefault();if(!e.repeat)toggle()});
 document.addEventListener('keyup',e=>{if(spaceOk(e))e.preventDefault()}); // evita que un botón enfocado también se "pulse" al soltar la barra
-document.addEventListener('visibilitychange',()=>{if(S.run){last=Date.now()-Math.min(Date.now()-last,864e5)}});
+document.addEventListener('visibilitychange',()=>{if(S.run&&!ownsRun()){tick()}});
 
 setInterval(()=>{if(S.view==='group'&&S.gv!=='chat'&&!S.run)render()},15000); // refresca 'hace X min' aunque tu cronómetro esté parado
 setInterval(()=>document.querySelectorAll('.el[data-s]').forEach(e=>e.textContent=clock((sNow()-e.dataset.s)/1000)),1000);
