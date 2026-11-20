@@ -230,6 +230,51 @@ nav button{font-size:14px}
 @keyframes flick{to{box-shadow:0 0 0 1.5px #f97316,0 0 30px 5px rgba(251,146,60,.7)}}
 @media(prefers-reduced-motion:reduce){.fire.max{animation:none}}
 
+/* ---------- Racha comunitaria (fuego azul) ---------- */
+.cmg{position:relative;overflow:hidden;margin-bottom:12px}
+.cmg.full{border-color:#22c55e;box-shadow:0 0 0 1.5px #22c55e,0 0 24px 2px rgba(34,197,94,.35)}
+.cmk{font:600 12px var(--f1);color:var(--mut);text-transform:uppercase;letter-spacing:.04em}
+.cmv{font:700 30px/1.1 var(--f1);margin:8px 0 0;font-variant-numeric:tabular-nums}
+.cmv small{font-size:15px;color:var(--mut);font-weight:500}
+.cmbar{position:relative;height:22px;border-radius:99px;background:var(--line);margin:30px 0 4px;transition:box-shadow .3s}
+.cmfill{position:absolute;left:0;top:0;bottom:0;border-radius:99px;overflow:hidden;display:flex;transition:width .9s cubic-bezier(.2,.8,.2,1)}
+.cmfill b{display:block;height:100%;min-width:0;border-right:2px solid rgba(255,255,255,.6)}
+.cmfill b:last-of-type{border-right:0}
+.cmfill::before{content:'';position:absolute;inset:0;z-index:1;background:repeating-linear-gradient(135deg,rgba(255,255,255,.2) 0 8px,transparent 8px 16px);background-size:22.63px 100%;animation:cmstripe 1s linear infinite}
+.cmfill::after{content:'';position:absolute;inset:0;z-index:2;background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.55) 50%,transparent 70%);transform:translateX(-100%);animation:cmshine 2.4s ease-in-out infinite}
+@keyframes cmstripe{to{background-position-x:22.63px}}
+@keyframes cmshine{60%,100%{transform:translateX(100%)}}
+.cmhead{position:absolute;top:-27px;width:28px;height:28px;margin-left:-14px;z-index:4;transition:left .9s cubic-bezier(.2,.8,.2,1);animation:cmhead .9s ease-in-out infinite alternate;filter:drop-shadow(0 0 7px rgba(59,130,246,.85));transform-origin:50% 90%}
+@keyframes cmhead{from{transform:translateY(0) scale(1) rotate(-4deg)}to{transform:translateY(-2px) scale(1.14) rotate(4deg)}}
+.cmbar.near .cmfill{box-shadow:0 0 14px 2px rgba(56,189,248,.7)}
+.cmbar.vnear{animation:cmpulse .7s ease-in-out infinite alternate}
+.cmbar.vnear .cmhead{width:36px;height:36px;margin-left:-18px;top:-35px;animation-duration:.4s}
+@keyframes cmpulse{to{box-shadow:0 0 0 4px rgba(245,158,11,.3),0 0 24px 4px rgba(245,158,11,.55)}}
+.cmbar.full .cmfill{box-shadow:0 0 18px 3px rgba(34,197,94,.55)}
+.cmbar.full .cmhead{animation-duration:.5s}
+.cmmsg{margin-top:12px;font:700 16px/1.3 var(--f1)}
+.cmmsg.near{color:#0ea5e9}.cmmsg.vnear{color:#f59e0b}.cmmsg.full{color:#16a34a}
+:root[data-t=dark] .cmmsg.full{color:#4ade80}
+.cmsub{color:var(--mut);font-size:13px;margin-top:6px;line-height:1.4}
+.cmsub.warn{color:#f59e0b;font-weight:600}
+.cmcta{display:flex;margin-top:14px}
+.cm.lit{border-color:#3b82f6;box-shadow:0 0 0 1.5px #3b82f6,0 0 22px 2px rgba(59,130,246,.4)}
+.cm.lit.hot{animation:flickb 1.6s ease-in-out infinite alternate}
+@keyframes flickb{to{box-shadow:0 0 0 1.5px #3b82f6,0 0 30px 5px rgba(56,189,248,.7)}}
+.cm.lit.risk{border-color:#f59e0b;animation:riskb .7s ease-in-out infinite alternate}
+@keyframes riskb{from{box-shadow:0 0 0 1.5px #f59e0b,0 0 18px 2px rgba(245,158,11,.4)}to{box-shadow:0 0 0 1.5px #f59e0b,0 0 28px 5px rgba(245,158,11,.65)}}
+.cmbig{font:700 40px/1 var(--f1);display:flex;align-items:center;gap:10px;color:#2563eb;font-variant-numeric:tabular-nums}
+:root[data-t=dark] .cmbig{color:#60a5fa}
+.cmbig small{font:600 13px var(--f1);color:var(--mut);align-self:flex-end;padding-bottom:5px;line-height:1.2}
+.cmbig .fl{width:48px;height:48px;transform-origin:50% 90%;animation:cmflame 1.1s ease-in-out infinite alternate;filter:drop-shadow(0 0 10px rgba(59,130,246,.75))}
+.cmbig .fl.off{animation:none;filter:grayscale(1)}
+.cm.risk .cmbig .fl{animation-duration:.35s}
+@keyframes cmflame{from{transform:scale(1) rotate(-3deg)}to{transform:scale(1.1) rotate(3deg)}}
+.chk.cmchk .ok i{background:#3b82f6;color:#fff}
+.chk.cmchk .fut{opacity:.5}
+@media(prefers-reduced-motion:reduce){.cmfill::before,.cmfill::after,.cmhead,.cmbar.vnear,.cm.lit.hot,.cm.lit.risk,.cmbig .fl{animation:none!important}}
+.m .bar{margin-top:6px;height:5px}
+
 /* ---------- Tren de Anàlisi ---------- */
 .train{padding:16px 14px 14px;margin-bottom:10px;overflow-x:auto;overflow-y:hidden;border-color:#f43f5e55}
 .train h3{font:700 13px var(--f1);color:var(--mut);display:flex;justify-content:space-between;gap:8px}
@@ -276,7 +321,8 @@ nav button{font-size:14px}
 .hat{position:absolute;left:50%;top:-16px;width:30px;height:21px;transform:translateX(-50%) rotate(-6deg);z-index:3;pointer-events:none;filter:drop-shadow(0 1px 1px rgba(0,0,0,.3))}
 .seat{width:32px;height:32px;border-radius:50%;border:2px dashed rgba(255,255,255,.7);display:grid;place-items:center;font-size:14px}
 @media(prefers-reduced-motion:reduce){.train *,.trk::after{animation:none!important}}
-.gseg button{padding:6px 11px}
+.gbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:0 0 14px}.gbar .gseg{min-width:0}
+.gseg{max-width:100%;overflow-x:auto;scrollbar-width:none}.gseg::-webkit-scrollbar{display:none}.gseg button{padding:6px 11px;white-space:nowrap;flex:none}
 .wnav{display:flex;align-items:center;justify-content:space-between;margin:0 0 12px;gap:10px}.wnav b{font:700 16px var(--f1)}
 .wnav button{width:36px;height:36px;border-radius:12px;background:var(--card);border:1px solid var(--line);font-size:18px;flex:none}.wnav button:disabled{opacity:.35}
 .wr{display:grid;gap:12px}.w2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -367,7 +413,7 @@ button.chr:hover{border-color:var(--acc)}
 </style>
 </head>
 <body>
-<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="flame" viewBox="0 0 24 24"><path fill="#f97316" d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67z"/><path fill="#fde047" d="M11.71 19c-1.78 0-3.22-1.4-3.22-3.14 0-1.62 1.05-2.76 2.81-3.12 1.77-.36 3.6-1.21 4.62-2.58.39 1.29.59 2.65.59 4.04 0 2.65-2.15 4.8-4.8 4.8z"/></symbol></svg>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="flame" viewBox="0 0 24 24"><path fill="#f97316" d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67z"/><path fill="#fde047" d="M11.71 19c-1.78 0-3.22-1.4-3.22-3.14 0-1.62 1.05-2.76 2.81-3.12 1.77-.36 3.6-1.21 4.62-2.58.39 1.29.59 2.65.59 4.04 0 2.65-2.15 4.8-4.8 4.8z"/></symbol><symbol id="flameB" viewBox="0 0 24 24"><path fill="#2563eb" d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67z"/><path fill="#93c5fd" d="M11.71 19c-1.78 0-3.22-1.4-3.22-3.14 0-1.62 1.05-2.76 2.81-3.12 1.77-.36 3.6-1.21 4.62-2.58.39 1.29.59 2.65.59 4.04 0 2.65-2.15 4.8-4.8 4.8z"/></symbol></svg>
 <div class="wrap">
   <header>
     <div class="logo"><i>ε</i>MathStudy</div>
@@ -528,6 +574,23 @@ const fireLv=n=>n<FIRE_MIN?0:Math.min(1,.25+.75*(n-FIRE_MIN)/(FIRE_MAX-FIRE_MIN)
 const fireCls=n=>n>0?' fire'+(n>=FIRE_MIN?' fb':'')+(n>=FIRE_MAX?' max':''):'';
 const fireVar=n=>n>0?`--fo:${(n<FIRE_MIN?.08:.12+.2*fireLv(n)).toFixed(2)};--fl:${fireLv(n).toFixed(2)}`:'';
 
+/* ---------- Objetivo y racha comunitarios ----------
+   Cada día la comunidad tiene un objetivo de horas distinto entre CG_MIN y CG_MAX, igual para todos (sale de la fecha).
+   El día cuenta si la suma de todos llega al objetivo; los días seguidos forman la racha comunitaria (fuego azul).
+   Para saber los días pasados cada perfil publica dl = minutos de sus últimos días ("AAAA-MM-DD:min"). */
+const CG_MIN=16,CG_MAX=25,CG_LOOK=45;
+function cgHash(t){let h=2166136261;for(let i=0;i<t.length;i++){h^=t.charCodeAt(i);h=Math.imul(h,16777619)}h^=h>>>15;h=Math.imul(h,2246822507);h^=h>>>13;h=Math.imul(h,3266489909);h^=h>>>16;return h>>>0}
+const cgGoal=k=>CG_MIN+cgHash('mates-'+k)%(CG_MAX-CG_MIN+1);   // horas
+function dayLogArr(){const o=[],d=lnow();for(let i=0;i<CG_LOOK;i++){const k=dk(d),t=day(k);if(t>0)o.push(k+':'+Math.min(1440,Math.floor(t/60)));d.setDate(d.getDate()-1)}return o}
+function parseDl(a){const o={};(Array.isArray(a)?a:[]).slice(0,CG_LOOK+5).forEach(x=>{const p=String(x).split(':');if(/^\d{4}-\d{2}-\d{2}$/.test(p[0]))o[p[0]]=num(p[1],1440)});return o}
+function commStats(ms){
+  const k0=dk(),secOf=k=>ms.reduce((a,m)=>a+(k===k0?m.daily:(m.dl[k]||0)*60),0);
+  const today=secOf(k0),done=today>=cgGoal(k0)*3600;
+  let n=0;const d=lnow();if(!done)d.setDate(d.getDate()-1);
+  while(n<CG_LOOK&&secOf(dk(d))>=cgGoal(dk(d))*3600){n++;d.setDate(d.getDate()-1)}
+  return{today,done,n,secOf,ok:k=>secOf(k)>=cgGoal(k)*3600};
+}
+
 /* ---------- Firebase (comunidad) ---------- */
 let fb={ok:false,db:null,rt:null,uid:'',users:{},pres:{},cheers:{},ver:new Set(),docOk:false,acct:false},lastFs=0,lastFsSig='',lastProf='',lastPrSig='',unsubFs=null,off=0,ringPrev=0;
 async function initFb(){
@@ -634,12 +697,13 @@ function sync(force,final){
     fb.rt.ref('presence/'+fb.uid).update({online:true,lastSeen:firebase.database.ServerValue.TIMESTAMP,nickname:S.nick,avatarColor:S.color,active:a,since:S.run?now+off-S.cur*1000:null}).catch(()=>{})}
   const sk=streakCur(),bs=streakBest(sk.n);
   let ww=[];try{ww=wkSnaps()}catch(e){}
-  const fs=JSON.stringify([S.nick,S.color,Math.floor(st.total/60),Math.floor(st.today/60),Math.floor(st.week/60),sk.n,sk.end,bs,ww.map(w=>[w.k,Math.floor(w.t/60)])]);
+  const dl=dayLogArr();
+  const fs=JSON.stringify([S.nick,S.color,Math.floor(st.total/60),Math.floor(st.today/60),Math.floor(st.week/60),sk.n,sk.end,bs,ww.map(w=>[w.k,Math.floor(w.t/60)]),dl]);
   if(fs===lastFsSig)return;
   const prof=S.nick+S.color,due=lastFs===0||final||prof!==lastProf||(!S.run&&force)||now-lastFs>=300000;
   if(!due)return;
   lastFs=now;lastFsSig=fs;lastProf=prof;
-  writeProfile({nickname:S.nick,avatarColor:S.color,totalSeconds:st.total,todaySeconds:st.today,todayDateKey:st.todayKey,weeklySeconds:st.week,weekStartKey:st.weekKey,streak:sk.n,streakEnd:sk.end,bestStreak:bs,ww,updatedAt:now+off}).catch(()=>{});
+  writeProfile({nickname:S.nick,avatarColor:S.color,totalSeconds:st.total,todaySeconds:st.today,todayDateKey:st.todayKey,weeklySeconds:st.week,weekStartKey:st.weekKey,streak:sk.n,streakEnd:sk.end,bestStreak:bs,ww,dl,updatedAt:now+off}).catch(()=>{});
 }
 /* ---------- Cuentas: nombre de usuario (único) + contraseña ----------
    Firebase Auth con un correo interno <nombre>@mathstudy.app (nunca se envía nada a esa dirección).
@@ -834,13 +898,13 @@ function members(){
   const tk=dk(),wk=dk(monday()),now=Date.now(),out=[];
   new Set([...Object.keys(fb.users),...Object.keys(fb.pres)]).forEach(id=>{
     const me=id===fb.uid,u={...fb.users[id],...fb.pres[id]};
-    if(me&&S.nick){const st=stats(),sk=streakCur();Object.assign(u,{streak:sk.n,streakEnd:sk.end,bestStreak:streakBest(sk.n),nickname:S.nick,avatarColor:S.color,totalSeconds:st.total,todaySeconds:st.today,todayDateKey:tk,weeklySeconds:st.week,weekStartKey:wk,online:fb.ok,active:S.run?SUBJ[S.run].n:null,since:S.run?now+off-S.cur*1000:null,lastSeen:now,updatedAt:now})}
+    if(me&&S.nick){const st=stats(),sk=streakCur();Object.assign(u,{streak:sk.n,streakEnd:sk.end,bestStreak:streakBest(sk.n),nickname:S.nick,avatarColor:S.color,totalSeconds:st.total,todaySeconds:st.today,todayDateKey:tk,weeklySeconds:st.week,weekStartKey:wk,dl:dayLogArr(),online:fb.ok,active:S.run?SUBJ[S.run].n:null,since:S.run?now+off-S.cur*1000:null,lastSeen:now,updatedAt:now})}
     if(!u.nickname||!NICK_RE.test(String(u.nickname)))return;
     if(!u.online&&now-(u.updatedAt||0)>30*864e5)return;           // usuarios fantasma
     const extra=(!me&&u.online&&u.active)?Math.min(600,Math.max(0,(now+off-(Math.max(+u.updatedAt||0,+u.since||0)||now+off))/1000)):0; // frescura de datos ajenos
     out.push({id,me,nick:String(u.nickname).slice(0,20),color:COLORS.includes(u.avatarColor)?u.avatarColor:COLORS[0],on:!!u.online,act:u.online?u.active:null,since:+u.since||0,seen:+u.lastSeen||+u.updatedAt||0,
       daily:(u.todayDateKey===tk?num(u.todaySeconds,86400):0)+extra,weekly:(u.weekStartKey===wk?num(u.weeklySeconds):0)+extra,total:num(u.totalSeconds)+extra,
-      streak:liveStreak(u),best:Math.max(num(u.bestStreak,36500),liveStreak(u))});
+      streak:liveStreak(u),best:Math.max(num(u.bestStreak,36500),liveStreak(u)),dl:parseDl(u.dl)});
   });return out;
 }
 function badge(){const on=members().filter(m=>m.on&&!m.me).length,b=$('#nav [data-v=group]');if(b)b.innerHTML='Comunidad'+(on?`<span class="bd">${on}</span>`:'')}
@@ -1169,11 +1233,38 @@ document.addEventListener('keydown',e=>{
   else if(e.key==='Escape'){e.preventDefault();stClose()}
 });
 
+function commView(ms){
+  const k0=dk(),G=cgGoal(k0),T=G*3600,cs=commStats(ms),rem=Math.max(0,T-cs.today),pct=Math.min(100,cs.today/T*100),done=cs.done;
+  const hmc=x=>hm(Math.ceil(x/60)*60),vnear=!done&&rem<=T*.05,near=!done&&!vnear&&rem<=T*.15,st=done?'full':vnear?'vnear':near?'near':'';
+  const e=lnow();e.setHours(24,0,0,0);const late=(e-lnow())/1000<=3*3600;
+  const rows=[...ms].sort((a,b)=>b.daily-a.daily||a.nick.localeCompare(b.nick));
+  const segs=rows.filter(m=>m.daily>0).map(m=>`<b title="${esc(m.nick)}" style="flex:${m.daily} 1 0;background:${m.color}"></b>`).join('');
+  const msg=done?'🎉 ¡Objetivo cumplido!':vnear?`🔥 ¡Solo faltan ${hmc(rem)}!`:near?`⚡ ¡Casi! Faltan ${hmc(rem)}`:`Faltan ${hmc(rem)} entre todos`;
+  const cta=done||S.run?'':`<div class="cmcta"><button class="mini" data-gostudy="1" style="flex:1">${vnear||near?'¡Aportar ahora!':'Estudiar y aportar'}</button></div>`;
+  let h=`<div class="card cmg ${st}"><div class="cmk">Objetivo de hoy</div>
+  <div class="cmv">${hm(cs.today)} <small>de ${G} h</small></div>
+  <div class="cmbar ${st}"><div class="cmfill" style="width:${pct.toFixed(1)}%">${segs}</div>${pct>0?`<svg class="fl cmhead" style="left:${Math.min(97,Math.max(3,pct)).toFixed(1)}%" viewBox="0 0 24 24" aria-hidden="true"><use href="#flameB"/></svg>`:''}</div>
+  <div class="cmmsg ${st}">${msg}</div>${cta}</div>`;
+  const risk=!done&&cs.n>0&&late,mo=monday(),nTxt=cs.n>=CG_LOOK?CG_LOOK+'+':cs.n;
+  const chk=[...Array(7)].map((_,i)=>{const d=new Date(mo);d.setDate(mo.getDate()+i);const k=dk(d),fut=k>k0,ok=!fut&&cs.ok(k);
+    return `<span class="${ok?'ok':''}${k===k0?' hoy':''}${fut?' fut':''}" title="${fut?'Objetivo: '+cgGoal(k)+' h':ok?'Objetivo cumplido':'Objetivo sin cumplir'}"><i>${ok?'✓':''}</i>${'DLMXJVS'[d.getDay()]}</span>`}).join('');
+  h+=`<div class="card fire cm${cs.n?' lit':''}${cs.n>=7?' hot':''}${risk?' risk':''}" style="--fo:${cs.n?.18:.08}"><svg class="bgf" viewBox="0 0 24 24" aria-hidden="true"><use href="#flameB"/></svg>
+  <div class="cmbig"><svg class="fl${cs.n?'':' off'}" viewBox="0 0 24 24" aria-hidden="true"><use href="#flameB"/></svg><span>${nTxt}</span><small>${cs.n===1?'día':'días'} de racha comunitaria</small></div>
+  <div class="cmsub${risk?' warn':''}">${done?'Hoy ya suma a la racha.':risk?'⚠️ Se rompe si no llegáis hoy.':'Llegad al objetivo hoy para '+(cs.n?'mantenerla':'empezarla')+'.'}</div>
+  <div class="chk cmchk">${chk}</div></div>`;
+  h+=`<div class="gh">Aportación de hoy</div>`;
+  h+=rows.length?`<div class="list">${rows.map((m,i)=>{const p=m.daily/T*100;return `<div class="m ${m.me?'me1':''}"><div class="pos">${m.daily>0&&['🥇','🥈','🥉'][i]||i+1}</div>
+  <div class="av ${m.on?'on':''}" style="background:${m.color}">${esc(m.nick[0].toUpperCase())}</div>
+  <div class="n"><b>${esc(m.nick)}${isVer(m.id)?TICK:''}${m.me?' (tú)':''}</b>${m.act?'<small class="live">Estudiando ahora</small>':''}<div class="bar"><i style="width:${Math.min(100,p).toFixed(1)}%;background:${m.color}"></i></div></div><div class="t">${hm(m.daily)}</div></div>`}).join('')}</div>`
+    :`<div class="empty">Todavía no hay nadie en la comunidad.</div>`;
+  return h;
+}
 function group(){
-  const ms=members();let h=`<div class="seg gseg" style="margin:0 0 14px"><button data-gv="friends" class="${S.gv==='friends'?'on':''}">Amigos</button><button data-gv="rank" class="${S.gv==='rank'?'on':''}">Ranking</button><button data-gv="chat" class="${S.gv==='chat'?'on':''}">Chat</button><button data-gv="wrap" class="${S.gv==='wrap'?'on':''}">Mates Wrapped</button></div>`;
+  const ms=members();let h=`<div class="gbar"><div class="seg gseg" style="margin:0"><button data-gv="friends" class="${S.gv==='friends'?'on':''}">Amigos</button><button data-gv="rank" class="${S.gv==='rank'?'on':''}">Ranking</button><button data-gv="chat" class="${S.gv==='chat'?'on':''}">Chat</button><button data-gv="wrap" class="${S.gv==='wrap'?'on':''}">Mates Wrapped</button></div><div class="seg" style="margin:0;flex:none"><button data-gv="comm" class="${S.gv==='comm'?'on':''}">Objetivo</button></div></div>`;
   if(S.gv==='wrap')return h+wrapView();
   if(!S.nick)h+=`<div class="card" style="margin-bottom:14px;text-align:center">Crea una cuenta para aparecer en la comunidad: tu nombre de usuario será tu nombre en el ranking.<div class="ctl"><button class="mini" data-reg="1">Crear cuenta</button></div></div>`;
   if(!fb.ok)h+=`<div class="hint" style="margin-bottom:10px">Sin conexión: la comunidad no está disponible, pero tu cronómetro funciona igual.</div>`;
+  if(S.gv==='comm')return h+commView(ms);
   if(S.gv==='chat')return h+chatView();
   if(S.gv==='friends'){
     const by=(a,k)=>a.sort((x,y)=>y[k]-x[k]),act=by(ms.filter(m=>m.act),'daily'),onl=by(ms.filter(m=>m.on&&!m.act),'daily'),off=by(ms.filter(m=>!m.on),'seen');
@@ -1199,6 +1290,7 @@ function render(){
   badge();syncListeners();
   $('#main').innerHTML=S.view==='study'?study():S.view==='stats'?statsView():S.view==='more'?moreView():group();
   if(S.view==='study')paint();
+  {const g=document.querySelector('.gseg'),a=g&&g.querySelector('.on');if(a&&g.scrollWidth>g.clientWidth)g.scrollLeft=a.offsetLeft-(g.clientWidth-a.offsetWidth)/2}   // la barra de pestañas se re-dibuja: mantiene visible la activa
   if(S.view==='group'&&S.gv==='friends')fixTrain();
   if(S.view==='group'&&S.gv==='chat'){const ci=$('#ci'),cl=$('#cl');if(ci)ci.value=draft;if(cl)cl.scrollTop=cl.scrollHeight}
 }
@@ -1287,6 +1379,7 @@ document.addEventListener('click',e=>{
   if((x=q('[data-cheer]')))return cheer(x.dataset.cheer);
   if((x=q('[data-wo]')))return wrapOff+=+x.dataset.wo,render();
   if(q('[data-wrep]'))return openStory();
+  if(q('[data-gostudy]'))return S.view='study',render(),scrollTo(0,0);
   if((x=q('[data-gv]')))return S.gv=x.dataset.gv,render();
   if(q('#cs'))return sendMsg();
   if((x=q('[data-delm]')))return fb.ok&&fb.rt.ref('chat/general/'+x.dataset.delm).remove().catch(()=>toast('No se pudo borrar'));
