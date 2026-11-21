@@ -862,7 +862,7 @@ async function pushProg(force){
       let c=null;try{c=clean(JSON.parse(cs))}catch(e){}
       const cr=Math.max(0,Math.floor(Number(sn.data().rev))||0);
       if(c&&cr>(S.rev||0)){ /* ajuste manual desde la consola: la nube manda, se sustituye lo local */
-        S.tot=c.tot;S.hist=c.hist;S.sess=c.sess;S.wk=c.wk;S.ws={...S.ws,...c.ws};S.rev=cr;stop();render()}
+        S.tot=c.tot;S.hist=c.hist;S.sess=c.sess;S.wk=c.wk;S.ws={...S.ws,...c.ws};S.nickAt=c.nickAt||0;S.rev=cr;stop();render()}
       else if(c){const m=mergeProg(S,c);S.tot=m.tot;S.hist=m.hist;S.sess=m.sess;S.wk=m.wk;S.ws=m.ws;S.nickAt=Math.max(S.nickAt||0,c.nickAt||0);
         if(!S.nick){S.nick=c.nick;S.color=c.color;S.goalD=c.goalD;S.goalW=c.goalW}}
     }
