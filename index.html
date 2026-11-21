@@ -548,7 +548,7 @@ const NOWRAP='otros'; // no cuenta para «más/menos estudiada» ni «asignatura
 const IDS=Object.keys(SUBJ),COLORS=['#6366f1','#10b981','#f43f5e','#f59e0b','#8b5cf6','#0ea5e9','#ec4899','#14b8a6'];
 const SYM=['∀','∃','∈','⊂','∪','∩','ℝ','ℕ','ℤ','∑','∫','∞','⇒','⇔','≠','≤','≥','λ','ε','δ'];
 const fbCfg={apiKey:"AIzaSyDtBjHqSx7QyJZXlR7EsYAPmTadIu2hmnU",authDomain:"math-study-df821.firebaseapp.com",databaseURL:"https://math-study-df821-default-rtdb.europe-west1.firebasedatabase.app",projectId:"math-study-df821",storageBucket:"math-study-df821.firebasestorage.app",messagingSenderId:"278188701491",appId:"1:278188701491:web:703b085ecc312d0f9ef046"};
-const blank=()=>({rev:0,theme:'light',view:'study',sel:'fonaments',mode:'free',rank:'daily',gv:'friends',range:7,nick:'',color:COLORS[0],goalD:3,goalW:15,
+const blank=()=>({rev:0,nickAt:0,theme:'light',view:'study',sel:'fonaments',mode:'free',rank:'daily',gv:'friends',range:7,nick:'',color:COLORS[0],goalD:3,goalW:15,
   tot:{fonaments:0,algebra:0,analisi:0,otros:0},hist:{},sess:[],wk:{},ws:{},
   run:null,cur:0,curAt:0,phase:0,rem:POMO[0]});
 let S=blank(),last=0,loop=null,tick5=0,saveT=0;
@@ -575,6 +575,7 @@ function toast(m,ms=2600){const t=$('#toast');t.textContent=m;t.classList.add('s
 function clean(p){
   const b=blank(),o=p&&typeof p==='object'?p:{};
   b.rev=Math.max(0,Math.floor(Number(o.rev))||0);
+  b.nickAt=Math.max(0,Math.floor(Number(o.nickAt))||0);
   b.theme=o.theme==='dark'?'dark':'light';
   b.nick=String(o.nick??o.userProfile?.nickname??'').trim().slice(0,20);
   b.color=COLORS.includes(o.color??o.userProfile?.avatarColor)?(o.color??o.userProfile.avatarColor):COLORS[0];
@@ -846,7 +847,7 @@ function mergeProg(a,b){
 }
 /* Progreso en la nube: como mucho una escritura cada 5 min mientras estudias, y al instante al pausar, terminar o cambiar ajustes. */
 let pgQ=Promise.resolve(),lastPg='',lastPgAt=0;
-const progOf=()=>JSON.stringify({tot:S.tot,hist:S.hist,sess:S.sess,wk:S.wk,ws:S.ws,goalD:S.goalD,goalW:S.goalW,nick:S.nick,color:S.color});
+const progOf=()=>JSON.stringify({tot:S.tot,hist:S.hist,sess:S.sess,wk:S.wk,ws:S.ws,goalD:S.goalD,goalW:S.goalW,nick:S.nick,nickAt:S.nickAt||0,color:S.color});
 const syncProgress=force=>pgQ=pgQ.then(()=>pushProg(force));
 async function pushProg(force){
   if(!fb.ok||!fb.acct)return true;
@@ -862,7 +863,7 @@ async function pushProg(force){
       const cr=Math.max(0,Math.floor(Number(sn.data().rev))||0);
       if(c&&cr>(S.rev||0)){ /* ajuste manual desde la consola: la nube manda, se sustituye lo local */
         S.tot=c.tot;S.hist=c.hist;S.sess=c.sess;S.wk=c.wk;S.ws={...S.ws,...c.ws};S.rev=cr;stop();render()}
-      else if(c){const m=mergeProg(S,c);S.tot=m.tot;S.hist=m.hist;S.sess=m.sess;S.wk=m.wk;S.ws=m.ws;
+      else if(c){const m=mergeProg(S,c);S.tot=m.tot;S.hist=m.hist;S.sess=m.sess;S.wk=m.wk;S.ws=m.ws;S.nickAt=Math.max(S.nickAt||0,c.nickAt||0);
         if(!S.nick){S.nick=c.nick;S.color=c.color;S.goalD=c.goalD;S.goalW=c.goalW}}
     }
     if(!S.nick)return true;
@@ -907,7 +908,7 @@ function authDlg(mode,keep){
   ${reg?`<label for="ap2">Repite la contraseña</label><input type="password" id="ap2" autocomplete="new-password">`:''}
   <small id="aerr" style="display:block;color:#ef4444;margin-top:8px;min-height:1.4em"></small>
   <small style="display:block;color:var(--mut);margin-top:2px">${reg
-    ?'Será tu nombre en el ranking. 3–20 caracteres (letras, números y espacios), único y no se podrá cambiar después. El progreso de este dispositivo pasará a tu cuenta.'
+    ?'Será tu nombre en el ranking. 3–20 caracteres (letras, números y espacios), único. Podrás cambiarlo una vez cada 30 días. El progreso de este dispositivo pasará a tu cuenta.'
     :'Al entrar, el progreso de este dispositivo se sustituye por el de tu cuenta.'}</small>
   <div class="acts"><button class="mini" id="aok">${reg?'Crear cuenta':'Entrar'}</button><button class="ghost" id="ab">Volver</button></div>`;
   d.open||d.showModal();
@@ -986,6 +987,41 @@ function pwDlg(){
       await u.updatePassword(p1);settings();toast('Contraseña cambiada');
     }catch(e){er.textContent=authMsg(e,'pw');b.disabled=false}
   };
+}
+const NICK_CD=30*864e5;
+function nickDlg(){
+  const d=$('#dlg');d.onclick=null;
+  const cu=firebase.auth().currentUser,lg=cu&&cu.email?cu.email.replace(MAIL,''):'',
+    until=(S.nickAt||0)+NICK_CD,lock=sNow()<until;
+  d.innerHTML=`<h2 style="margin-top:0">Cambiar nombre</h2>
+  <div class="hint" style="text-align:left;margin:0">Puedes cambiar tu nombre <b>una vez cada 30 días</b>.${lock?` Podrás volver a cambiarlo el <b>${new Date(until).toLocaleDateString('es-ES')}</b>.`:''} Para entrar a tu cuenta seguirás escribiendo <b>${esc(lg)}</b>: apúntalo.</div>
+  <label for="nn">Nuevo nombre</label><input type="text" id="nn" maxlength="20" autocomplete="off" autocapitalize="off" spellcheck="false" value="${esc(S.nick)}" ${lock?'disabled':''}>
+  <small id="aerr" style="display:block;color:#ef4444;margin-top:8px;min-height:1.4em"></small>
+  <div class="acts"><button class="mini" id="aok" ${lock?'disabled':''}>Cambiar nombre</button><button class="ghost" id="ab">Volver</button></div>`;
+  d.open||d.showModal();
+  d.onkeydown=e=>{if(e.key==='Enter'&&e.target.tagName==='INPUT'){e.preventDefault();$('#aok').click()}};
+  $('#nn').oninput=e=>{const v=e.target.value.replace(new RegExp('[^'+NCH+' ]','g'),'');if(v!==e.target.value)e.target.value=v};
+  $('#ab').onclick=()=>settings();
+  $('#aok').onclick=doRename;
+}
+async function doRename(){
+  const b=$('#aok'),er=$('#aerr'),nn=$('#nn').value.trim().replace(/\s+/g,' ');er.textContent='';
+  if(!fb.ok||!fb.acct)return er.textContent='Necesitas una cuenta y conexión para cambiar el nombre.';
+  if(sNow()<(S.nickAt||0)+NICK_CD)return er.textContent='Aún no puedes cambiar el nombre.';
+  if(nn===S.nick)return er.textContent='Ese ya es tu nombre.';
+  const m=nickErr(nn);if(m)return er.textContent=m;
+  if(!confirm('¿Cambiar tu nombre a «'+nn+'»? No podrás volver a cambiarlo hasta dentro de 30 días.'))return;
+  b.disabled=true;
+  try{
+    const r=await claimNick(nn);
+    if(r==='taken'){er.textContent='Ese nombre ya está en uso. Elige otro.';b.disabled=false;return}
+    if(r==='error'){er.textContent=authMsg({code:'nick-error'});b.disabled=false;return}
+    const old=S.nick;S.nick=nn;S.nickAt=sNow();save(true);
+    releaseNick(old,nn);
+    lastPrSig='';lastProf='';
+    await syncProgress(true);sync(true);
+    settings();render();toast('Nombre cambiado');
+  }catch(e){er.textContent=authMsg(e);b.disabled=false}
 }
 async function logout(){
   if(!confirm('¿Cerrar sesión? Tu progreso queda guardado en tu cuenta y se restaura al volver a entrar.'))return;
@@ -1483,7 +1519,7 @@ function settings(){
     <div class="acts"><button class="ghost" id="cpw">Cambiar contraseña</button><button class="ghost" id="lo">Cerrar sesión</button></div>`
     :`<b>Sin cuenta</b><div class="hint" style="text-align:left;margin:2px 0 0">Crea una cuenta para guardar tu progreso y recuperarlo en cualquier dispositivo.</div>
     <div class="acts"><button class="mini" id="reg">Crear cuenta</button><button class="ghost" id="log">Entrar</button></div>`}</div>
-  ${S.nick?`<label for="pn">Nombre de usuario</label><input type="text" id="pn" value="${esc(S.nick)}" readonly><small style="display:block;color:var(--mut);margin-top:2px">${acc?'Es tu nombre en el ranking y el que usas para entrar. No se puede cambiar.':'Es tu nombre en el ranking.'}</small>`:`<div class="hint" style="text-align:left;margin-top:12px">Tu nombre en el ranking es tu nombre de usuario: crea una cuenta para aparecer en la comunidad.</div>`}
+  ${S.nick?`<label for="pn">Nombre de usuario</label><input type="text" id="pn" value="${esc(S.nick)}" readonly><small style="display:block;color:var(--mut);margin-top:2px">${acc?'Es tu nombre en el ranking. Puedes cambiarlo una vez cada 30 días.':'Es tu nombre en el ranking.'}</small>${acc?'<div class="acts" style="margin-top:8px"><button class="ghost" id="cnk">Cambiar nombre</button></div>':''}`:`<div class="hint" style="text-align:left;margin-top:12px">Tu nombre en el ranking es tu nombre de usuario: crea una cuenta para aparecer en la comunidad.</div>`}
   <label>Color</label><div class="cols">${COLORS.map(c=>`<button type="button" data-col="${c}" class="${c===S.color?'on':''}" style="background:${c}" aria-label="Color ${c}"></button>`).join('')}</div>
   <label for="gd">Meta diaria (horas)</label><input type="number" id="gd" min="1" max="24" value="${S.goalD}">
   <label for="gw">Meta semanal (horas)</label><input type="number" id="gw" min="1" max="168" value="${S.goalW}">
@@ -1492,7 +1528,7 @@ function settings(){
   let col=S.color;
   d.onclick=e=>{const c=e.target.closest('[data-col]');if(c){col=c.dataset.col;d.querySelectorAll('[data-col]').forEach(b=>b.classList.toggle('on',b===c))}};
   $('#dcl').onclick=()=>d.close();
-  if(acc){$('#cpw').onclick=pwDlg;$('#lo').onclick=logout}
+  if(acc){$('#cpw').onclick=pwDlg;$('#lo').onclick=logout;const cn=$('#cnk');if(cn)cn.onclick=nickDlg}
   else{$('#reg').onclick=()=>authDlg('reg');$('#log').onclick=()=>authDlg('log')}
   $('#ok').onclick=()=>{S.color=col;S.goalD=Math.min(24,num($('#gd').value)||3);S.goalW=Math.min(168,num($('#gw').value)||15);save(true);d.close();render();sync(true);toast('Guardado')};
 }
