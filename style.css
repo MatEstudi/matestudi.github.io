@@ -321,7 +321,7 @@ main.in{animation:rise .3s ease-out both}
 /* Estudiar: anillo y tarjetas */
 .ring svg{position:relative;z-index:1}
 .clock{z-index:2}
-.ring::before{content:'';position:absolute;inset:-8%;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--acc) 26%,transparent),transparent 68%);opacity:0;transition:opacity .8s}
+.ring::before{content:'';position:absolute;inset:-14%;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--acc) 26%,transparent),transparent 68%);opacity:0;transition:opacity .8s}
 .focus.run .ring::before{opacity:1;animation:breathe 3.4s ease-in-out infinite}
 .focus.run .pg{filter:drop-shadow(0 0 5px color-mix(in srgb,var(--acc) 75%,transparent))}
 @keyframes breathe{50%{transform:scale(1.07);opacity:.65}}

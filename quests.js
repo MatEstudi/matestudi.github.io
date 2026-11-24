@@ -218,7 +218,7 @@ function questsView(){
   const prev=lv.xp,pr=nx?Math.min(100,(t.xp-prev)/(nx.xp-prev)*100):100;
   const nb=QBADGES.filter(b=>qState().bg[b.id]).length;
   const qSub=S.qsub||'objetivo';
-  const all=members(),ms=all.filter(m=>m.grp?Object.keys(m.grp).length>0:true);
+  const all=members(),g=curG(),ms=all.filter(m=>m.grp[g]).map(m=>({...m,...m.grp[g]}));
   
   // Objetivo subtab: EXACTLY like old commView (today's objective + Aportación de hoy)
   const objHtml=typeof commView==='function'?commView(ms):'';
