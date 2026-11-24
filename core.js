@@ -8,7 +8,7 @@ const DEFAULT_SUBS=['fonaments','algebra','analisi'];
 const NOWRAP='otros'; // no cuenta para «más/menos estudiada» ni «asignatura en alza/caída» del Recap
 const IDS=Object.keys(SUBJ),COLORS=['#6366f1','#10b981','#f43f5e','#f59e0b','#8b5cf6','#0ea5e9','#ec4899','#14b8a6'];
 const SYM=['∀','∃','∈','⊂','∪','∩','ℝ','ℕ','ℤ','∑','∫','∞','⇒','⇔','≠','≤','≥','λ','ϵ','δ'];
-const blank=()=>({rev:0,theme:'light',view:'study',sel:'fonaments',mode:'free',pomo:false,pw:50,pb:10,nt:false,rank:'daily',gv:'friends',range:7,nick:'',color:COLORS[0],goalD:3,goalW:15,
+const blank=()=>({rev:0,theme:'light',view:'study',sel:'fonaments',mode:'free',pomo:false,pw:50,pb:10,nt:false,rank:'daily',gv:'friends',range:0,nick:'',color:COLORS[0],goalD:3,goalW:15,
   tot:Object.fromEntries(Object.keys(SUBJ).map(i=>[i,0])),subs:[...DEFAULT_SUBS],crs:['primero'],cg:'',hist:{},sess:[],wk:{},ws:{},md:{},
   run:null,cur:0,curAt:0,phase:0,rem:POMO[0]});
 let S=blank(),last=0,loop=null,tick5=0,saveT=0;
@@ -54,7 +54,7 @@ function clean(p){
   b.color=COLORS.includes(o.color??o.userProfile?.avatarColor)?(o.color??o.userProfile.avatarColor):COLORS[0];
   b.goalD=Math.min(24,num(o.goalD??o.dailyGoalHours)||3);b.goalW=Math.min(168,num(o.goalW??o.weeklyGoalHours)||15);
   b.pomo=!!o.pomo;b.nt=!!o.nt;b.pw=Math.min(180,Math.max(1,num(o.pw)||50));b.pb=Math.min(60,Math.max(1,num(o.pb)||10));
-  b.sel=IDS.includes(o.sel)?o.sel:'fonaments';b.range=o.range===30?30:7;b.mode=o.mode==='pomo'&&b.pomo?'pomo':'free';
+  b.sel=IDS.includes(o.sel)?o.sel:'fonaments';b.range=o.range===30?30:o.range===7?7:0;b.mode=o.mode==='pomo'&&b.pomo?'pomo':'free';
   {const sb=[...new Set((Array.isArray(o.subs)?o.subs:[]).filter(i=>SUBJ[i]&&SUBJ[i].g))];
     let cr=(Array.isArray(o.crs)?o.crs:[]).filter(g=>GR[g]);if(!cr.length)cr=Object.keys(GR).filter(g=>sb.some(i=>SUBJ[i].g===g));if(!cr.length)cr=['primero'];
     b.crs=Object.keys(GR).filter(g=>cr.includes(g));

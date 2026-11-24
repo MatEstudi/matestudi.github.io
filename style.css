@@ -80,7 +80,7 @@ nav button{font-size:14px}
 .goal label{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:var(--mut)}.goal input{width:70px;padding:6px 10px}
 .kv{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
 .dist{display:grid;gap:14px}.dist div div{display:flex;justify-content:space-between;font-weight:500}.dist small{color:var(--mut)}
-.hd{display:flex;justify-content:space-between;align-items:center;margin:26px 0 12px}.hd h2{margin:0}.hd .seg{margin:0}
+.hd{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin:26px 0 12px}.hd h2{margin:0}.hd .seg{margin:0}
 .ses{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line)}.ses:last-child{border:0}.ses small{color:var(--mut)}
 .fc{padding:16px;margin-bottom:10px}.fc.me1{border-color:var(--acc)}
 .m0{display:flex;gap:12px;align-items:center}.m0 .n{flex:1;min-width:0}.m0 .n b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -449,7 +449,7 @@ dialog>.acts button{padding:13px 16px;border-radius:16px}
 .rcx .vt{filter:drop-shadow(0 0 1.5px #fff)}
 .rcx>.bgf{opacity:calc(var(--fo,.12)*.5)}
 .rc1{background:linear-gradient(135deg,#38bdf8,#2563eb 62%,#1e3a8a)}
-.rc1::before{left:0;right:0;bottom:6px;height:9px;opacity:.85;background:linear-gradient(rgba(255,255,255,.55),rgba(255,255,255,.55)) 0 50%/100% 2px no-repeat,repeating-linear-gradient(90deg,rgba(255,255,255,.55) 0 2px,transparent 2px 24px) 12px 0/100% 100%}
+.rc1::before{left:0;right:0;bottom:6px;height:9px;opacity:.85;background:linear-gradient(rgba(255,255,255,.55),rgba(255,255,255,.55)) 0 50%/100% 2px no-repeat,repeating-linear-gradient(90deg,rgba(255,255,255,.55) 0 2px,transparent 2px 24px) 12px 0/100% 100% no-repeat}
 .rc2{background:linear-gradient(135deg,#a78bfa,#7c3aed 55%,#db2777)}
 .rc2::before{left:0;right:0;bottom:5px;height:10px;background:repeating-linear-gradient(90deg,rgba(255,255,255,.32) 0 calc(25% - 3px),transparent calc(25% - 3px) 25%) 0 100%/100% 4px no-repeat,repeating-linear-gradient(90deg,rgba(255,255,255,.32) 0 calc(50% - 3px),transparent calc(50% - 3px) 50%) 0 0/100% 4px no-repeat}
 .rc2 .rkt[title]{position:relative;background:linear-gradient(180deg,#fff 0 46%,transparent 46% 54%,#fbcfe8 54%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;filter:drop-shadow(0 0 4px rgba(244,114,182,.7))}
@@ -492,3 +492,14 @@ dialog>.acts button{padding:13px 16px;border-radius:16px}
 .swt{flex:none;width:46px;height:26px;border-radius:99px;background:var(--line);position:relative;transition:background .25s}
 .swt::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .25s var(--ease)}
 .swt.on{background:var(--acc)}.swt.on::after{transform:translateX(20px)}
+
+/* Brillo suave en la barra comunitaria y rebote ligero del tren */
+@keyframes cmsweep{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+@keyframes bob2{from{transform:translateY(0)}to{transform:translateY(-1px)}}
+.cmfill::after{opacity:.35;animation:cmsweep 6s linear infinite}
+.car{animation:bob2 .8s cubic-bezier(.37,0,.63,1) infinite alternate;animation-delay:calc(var(--i,0)*-.17s)}
+
+/* Barras apiladas por asignatura y detalle en «Por asignatura» */
+.week i{display:flex;flex-direction:column-reverse;overflow:hidden;background:var(--line)}
+.week i b{display:block;min-height:0}
+.dist .sx{display:block;font-size:11.5px;opacity:.8;margin-top:5px}

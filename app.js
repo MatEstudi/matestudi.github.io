@@ -39,20 +39,29 @@ function study(){
 function statsView(){
   const st=stats(),n=S.range,gD=S.goalD*3600;
   const td=lnow();td.setHours(0,0,0,0);
-  const ds=n===7?[...Array(7)].map((_,i)=>{const d=weekFri();d.setDate(d.getDate()+i);return d})
-    :[...Array(new Date(td.getFullYear(),td.getMonth()+1,0).getDate())].map((_,i)=>new Date(td.getFullYear(),td.getMonth(),i+1));
+  const ds=n===30?[...Array(new Date(td.getFullYear(),td.getMonth()+1,0).getDate())].map((_,i)=>new Date(td.getFullYear(),td.getMonth(),i+1))
+    :[...Array(7)].map((_,i)=>{const d=n?weekFri():new Date(td);d.setDate(d.getDate()+i-(n?0:6));return d});
   const vals=ds.map(d=>day(dk(d))),pastN=ds.filter(d=>d<=td).length,dm1=d=>d.toLocaleDateString('es',{day:'numeric',month:'short'});
-  const rl=n===7?`Semana del ${dm1(ds[0])} al ${dm1(ds[6])}`:ds[0].toLocaleDateString('es',{month:'long',year:'numeric'}).replace(/^./,c=>c.toUpperCase());
+  const rl=n===30?ds[0].toLocaleDateString('es',{month:'long',year:'numeric'}).replace(/^./,c=>c.toUpperCase()):`${n?'Semana':'Últimos 7 días:'} del ${dm1(ds[0])} al ${dm1(ds[6])}`.replace('días: del','días:');
   const mx=Math.max(gD,...vals),act=vals.filter(v=>v>0),avg=act.length?act.reduce((a,b)=>a+b,0)/act.length:0,hit=vals.filter(v=>v>=gD).length;
   const rec=Object.values(S.hist).reduce((m,v)=>Math.max(m,v.t),0),tot=Math.max(1,st.total);
-  const lbl=(d,i)=>n===7?'DLMXJVS'[d.getDay()]:(d.getDate()===1||d.getDate()%5===0||d.getTime()===td.getTime()?d.getDate():'');
-  return rankCard()+`<div class="hd"><h2>Constancia</h2>${pill('range',[[7,'Semanal'],[30,'Mensual']],n,'data-range')}</div>
-  <div class="card"><div class="hint" style="margin:0 0 12px;text-align:left;font-weight:600">${rl}</div><div class="week" style="gap:${n>7?3:8}px">${ds.map((d,i)=>`<div class="${d.getTime()===td.getTime()?'td':''}" title="${DAYN[d.getDay()]} ${d.getDate()}: ${hm(vals[i])}"><p><i style="height:${vals[i]/mx*100}%;opacity:${d>td?.12:vals[i]>=gD?1:.4}"></i></p><span>${lbl(d,i)}</span></div>`).join('')}</div>
+  const lbl=(d,i)=>n<30?'DLMXJVS'[d.getDay()]:(d.getDate()===1||d.getDate()%5===0||d.getTime()===td.getTime()?d.getDate():'');
+  const w0=dk(addD(td,-6)),sx=Object.fromEntries(IDS.map(i=>[i,{d:0,b:0,w:0}]));
+  Object.entries(S.hist).forEach(([k,v])=>IDS.forEach(i=>{const t=v[i]||0;if(t>0){const x=sx[i];x.d++;if(t>x.b)x.b=t;if(k>=w0)x.w+=t}}));
+  const sxt=i=>{const x=sx[i];return `<small class="sx">${x.d?`${x.d} ${x.d===1?'día':'días'} · media ${hm(S.tot[i]/x.d)} por día · mejor día ${hm(x.b)} · últimos 7 días ${hm(x.w)}`:'Sin estudio todavía'}</small>`};
+  return rankCard()+`<div class="hd"><h2>Constancia</h2>${pill('range',[[0,'Últimos 7 días'],[7,'Semanal'],[30,'Mensual']],n,'data-range')}</div>
+  <div class="card"><div class="hint" style="margin:0 0 12px;text-align:left;font-weight:600">${rl}</div><div class="week" style="gap:${n>7?3:8}px">${ds.map((d,i)=>`<div class="${d.getTime()===td.getTime()?'td':''}" title="${DAYN[d.getDay()]} ${d.getDate()}: ${hm(vals[i])}"><p><i style="height:${vals[i]/mx*100}%;opacity:${d>td?.12:vals[i]>=gD?1:.55}">${IDS.map(s=>{const v=S.hist[dk(d)]?.[s]||0;return v?`<b style="flex:${v} 1 0;background:${SUBJ[s].c}"></b>`:''}).join('')}</i></p><span>${lbl(d,i)}</span></div>`).join('')}</div>
   <div class="hint">Las barras intensas alcanzaron tu meta diaria (${hit} de ${pastN} ${pastN===1?'día':'días'} hasta hoy).</div></div>
   <h2>Resumen</h2>
   <div class="kv"><div class="card st"><b>${hm(st.total)}</b><span>Tiempo total</span></div><div class="card st"><b>${act.length?hm(avg):'0 min'}</b><span>Media por día activo</span></div><div class="card st"><b>${hm(rec)}</b><span>Mejor día</span></div></div>
-  <h2>Por asignatura</h2><div class="card dist">${statIds().map(i=>`<div><div><span>${SUBJ[i].n}</span><small>${hm(S.tot[i])} (${Math.round(S.tot[i]/tot*100)}%)</small></div><div class="bar"><i style="width:${S.tot[i]/tot*100}%;background:${SUBJ[i].c}"></i></div></div>`).join('')}</div>
+  ${hoursCard()}<h2>Por asignatura</h2><div class="card dist">${statIds().map(i=>`<div><div><span>${SUBJ[i].n}</span><small>${hm(S.tot[i])} (${Math.round(S.tot[i]/tot*100)}%)</small></div><div class="bar"><i style="width:${S.tot[i]/tot*100}%;background:${SUBJ[i].c}"></i></div>${sxt(i)}</div>`).join('')}</div>
   <h2>Todos los rangos</h2>${ranksList()}`;
+}
+function hoursCard(){
+  const h=Array(24).fill(0);Object.values(S.wk||{}).forEach(w=>(w.h||[]).forEach((v,i)=>h[i]+=v));
+  const mx=Math.max(...h);if(!mx)return '';
+  const pk=h.indexOf(mx),p2=n=>String(n%24).padStart(2,'0')+':00',tot=h.reduce((a,b)=>a+b,0);
+  return `<h2>Horas del día</h2><div class="card"><div class="hrs" style="height:90px">${h.map((v,i)=>`<i class="${i===pk?'on':''}" style="height:${Math.max(3,v/mx*100)}%;opacity:${i===pk?1:(.35+.4*v/mx).toFixed(2)}" title="${p2(i)} · ${hm(v)}"></i>`).join('')}</div><div class="hrl"><span>0h</span><span>6h</span><span>12h</span><span>18h</span><span>23h</span></div><div class="hint" style="margin-top:8px;text-align:left">Tu hora más fuerte: ${p2(pk)}–${p2(pk+1)} (${Math.round(h[pk]/tot*100)}% de tu tiempo). Últimas 12 semanas.</div></div>`;
 }
 const sNow=()=>Date.now()+off;
 const ago=t=>{if(!t)return 'hace tiempo';const x=Math.max(0,(sNow()-t)/1000);if(x<60)return 'hace un momento';if(x<3600)return 'hace '+Math.floor(x/60)+' min';if(x<86400)return 'hace '+Math.floor(x/3600)+' h';return 'hace '+Math.floor(x/86400)+' d'};
@@ -392,9 +401,8 @@ function render(){
   nv.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v===S.view));
   $('#meav').textContent=S.nick?bb(S.nick):'?';$('#meav').style.background=S.color;hdr();
   syncListeners();
-  const mn=$('#main'),key=S.view+(S.view==='group'?S.gv:'');
+  const mn=$('#main');
   mn.innerHTML=S.view==='study'?study():S.view==='stats'?statsView():group();
-  if(key!==lastKey){lastKey=key;mn.classList.remove('in');void mn.offsetWidth;mn.classList.add('in');clearTimeout(mn._t);mn._t=setTimeout(()=>mn.classList.remove('in'),1100)}
   segAnim();
   if(S.view==='study')paint();
   if(S.view==='group'&&S.gv==='friends')fixTrain();
