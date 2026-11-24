@@ -487,11 +487,18 @@ async function delMsg(id){
 }
 
 /* ---------- Ajustes ---------- */
+let deferredPrompt=null;
+addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;});
+
 function settings(){
   const d=$('#dlg'),acc=fb.acct;
   d.onkeydown=null;
   const subs=new Set(S.subs),crs=new Set(S.crs);
+  const isStandalone=matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: fullscreen)').matches;
+  const canInstall=deferredPrompt&&!isStandalone;
   d.innerHTML=`<h2>Perfil y ajustes</h2>
+  ${canInstall?`<div class="acct" style="background:var(--soft);border-color:var(--acc)"><b>Instalar MatEstudi</b><div class="hint" style="text-align:left;margin:2px 0 0">Instala la app para acceso rápido, uso offline y notificaciones.</div>
+  <div class="acts"><button class="mini" id="inst">Instalar</button></div></div>`:''}
   <div class="acct">${acc
     ?`<b>Sesión iniciada</b><div class="hint" style="text-align:left;margin:2px 0 0">Tu progreso se guarda en tu cuenta y se restaura al entrar desde cualquier dispositivo.</div>
     <div class="acts"><button class="ghost" id="cpw">Cambiar contraseña</button><button class="ghost" id="lo">Cerrar sesión</button></div>`
@@ -519,6 +526,7 @@ function settings(){
     const t=e.target.closest('[data-gt]');if(t){const ids=IDS.filter(i=>SUBJ[i].g===t.dataset.gt),all=ids.every(i=>subs.has(i));ids.forEach(i=>all?subs.delete(i):subs.add(i));if(!subs.size)ids.forEach(i=>subs.add(i));sync2()}
   };
   $('#dcl').onclick=()=>d.close();
+  if(canInstall){$('#inst').onclick=async()=>{deferredPrompt.prompt();const{outcome}=await deferredPrompt.userChoice;if(outcome==='accepted')toast('Instalando...');deferredPrompt=null;settings();}}
   if(acc){$('#cpw').onclick=pwDlg;$('#lo').onclick=logout}
   else{$('#reg').onclick=()=>authDlg('reg');$('#log').onclick=()=>authDlg('log')}
   $('#ok').onclick=()=>{const np=Math.min(180,Math.max(1,num($('#pw').value)||50)),nb=Math.min(60,Math.max(1,num($('#pb').value)||10)),chg=np!==S.pw||nb!==S.pb;S.pomo=po;S.pw=np;S.pb=nb;S.nt=nt;applyPomo();

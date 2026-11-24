@@ -5,6 +5,16 @@
 :root{--bg:#f5f6fa;--card:#fff;--ink:#161a2e;--mut:#6b7190;--line:#e6e8f0;--acc:#6366f1;--soft:color-mix(in srgb,var(--acc) 11%,transparent);--r:22px;
 --f1:'Bricolage Grotesque','Trebuchet MS',system-ui,sans-serif;--f2:'Instrument Sans',system-ui,-apple-system,'Segoe UI',sans-serif}
 :root[data-t=dark]{--bg:#0d1020;--card:#161a2e;--ink:#eceefb;--mut:#9096b5;--line:#252a45}
+
+/* PWA standalone mode styles */
+@media (display-mode: standalone), (display-mode: fullscreen) {
+  body{padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+  .wrap{padding-bottom:calc(60px + env(safe-area-inset-bottom))}
+  header{padding-top:calc(18px + env(safe-area-inset-top))}
+}
+@media (display-mode: browser) {
+  body{padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+}
 *{box-sizing:border-box;margin:0}
 html{background:var(--bg)}
 body{font:15px/1.5 var(--f2);color:var(--ink);background:radial-gradient(900px 420px at 50% -120px,var(--soft),transparent),var(--bg);min-height:100vh;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);transition:background .4s}
