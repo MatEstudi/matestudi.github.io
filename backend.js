@@ -103,7 +103,7 @@ function syncListeners(){
     if(S.gv!=='chat'&&Date.now()-usersAt>40000){usersAt=Date.now();fetchUsers()}
     if(S.gv!=='chat'&&Date.now()-msAt>40000){msAt=Date.now();fetchMissions()}
   }
-  listenChat(g&&S.gv==='chat');
+  listenChat((g&&S.gv==='chat')||(S.nt&&fb.acct));
 }
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&fb.ok&&fb.acct&&S.nick)sync(true)});
 /* Para cerrar la pestaña: fetch con keepalive sigue vivo aunque la página se descargue */
@@ -173,7 +173,7 @@ function mergeProg(a,b){
 }
 /* Progreso en la nube: como mucho una escritura cada 5 min mientras estudias, y al instante al pausar, terminar o cambiar ajustes. */
 let pgQ=Promise.resolve(),lastPg='',lastPgAt=0;
-const progObj=()=>({tot:S.tot,hist:S.hist,sess:S.sess,wk:S.wk,ws:S.ws,goalD:S.goalD,goalW:S.goalW,nick:S.nick,color:S.color,subs:S.subs,crs:S.crs,md:S.md});
+const progObj=()=>({tot:S.tot,hist:S.hist,sess:S.sess,wk:S.wk,ws:S.ws,goalD:S.goalD,goalW:S.goalW,nick:S.nick,color:S.color,subs:S.subs,crs:S.crs,md:S.md,pomo:S.pomo,pw:S.pw,pb:S.pb});
 const syncProgress=(force,keepalive)=>{
   if(keepalive){
     if(!fb.ok||!fb.acct||!S.nick)return;

@@ -119,7 +119,7 @@ nav button{font-size:14px}
 .train h3{font:700 13px var(--f1);color:var(--mut);display:flex;justify-content:space-between;gap:8px}
 .trk{display:flex;align-items:flex-end;width:max-content;min-width:100%;padding:58px 4px 10px;position:relative}
 .trk::before{content:'';position:absolute;left:0;right:0;bottom:8px;height:3px;background:var(--mut);opacity:.7;border-radius:2px}
-.trk::after{content:'';position:absolute;left:0;right:0;bottom:0;height:8px;background:repeating-linear-gradient(90deg,#92400e 0 9px,transparent 9px 24px);opacity:.55}
+.trk::after{content:'';position:absolute;left:0;right:0;bottom:0;height:8px;background:repeating-linear-gradient(90deg,#92400e 0 9px,transparent 9px 24px);opacity:.55;background-size:24px 8px;animation:gnd .2s linear infinite}
 @keyframes gnd{to{background-position-x:-24px}}
 .car{position:relative;width:112px;height:128px;flex:none;margin-right:10px;animation-delay:calc(var(--i,0)*-.17s)}
 .car:first-child{margin-left:auto}
@@ -486,3 +486,9 @@ dialog>.acts button{padding:13px 16px;border-radius:16px}
 .rc>.bgf{position:absolute}
 
 .train{contain:layout paint}.wl,.rod,.pf{backface-visibility:hidden}
+
+[hidden]{display:none!important}
+.trow{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:14px}
+.swt{flex:none;width:46px;height:26px;border-radius:99px;background:var(--line);position:relative;transition:background .25s}
+.swt::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .25s var(--ease)}
+.swt.on{background:var(--acc)}.swt.on::after{transform:translateX(20px)}

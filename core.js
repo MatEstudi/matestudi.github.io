@@ -8,7 +8,7 @@ const DEFAULT_SUBS=['fonaments','algebra','analisi'];
 const NOWRAP='otros'; // no cuenta para «más/menos estudiada» ni «asignatura en alza/caída» del Recap
 const IDS=Object.keys(SUBJ),COLORS=['#6366f1','#10b981','#f43f5e','#f59e0b','#8b5cf6','#0ea5e9','#ec4899','#14b8a6'];
 const SYM=['∀','∃','∈','⊂','∪','∩','ℝ','ℕ','ℤ','∑','∫','∞','⇒','⇔','≠','≤','≥','λ','ϵ','δ'];
-const blank=()=>({rev:0,theme:'light',view:'study',sel:'fonaments',mode:'free',rank:'daily',gv:'friends',range:7,nick:'',color:COLORS[0],goalD:3,goalW:15,
+const blank=()=>({rev:0,theme:'light',view:'study',sel:'fonaments',mode:'free',pomo:false,pw:50,pb:10,nt:false,rank:'daily',gv:'friends',range:7,nick:'',color:COLORS[0],goalD:3,goalW:15,
   tot:Object.fromEntries(Object.keys(SUBJ).map(i=>[i,0])),subs:[...DEFAULT_SUBS],crs:['primero'],cg:'',hist:{},sess:[],wk:{},ws:{},md:{},
   run:null,cur:0,curAt:0,phase:0,rem:POMO[0]});
 let S=blank(),last=0,loop=null,tick5=0,saveT=0;
@@ -53,7 +53,8 @@ function clean(p){
   b.nick=String(o.nick??o.userProfile?.nickname??'').trim().slice(0,20);
   b.color=COLORS.includes(o.color??o.userProfile?.avatarColor)?(o.color??o.userProfile.avatarColor):COLORS[0];
   b.goalD=Math.min(24,num(o.goalD??o.dailyGoalHours)||3);b.goalW=Math.min(168,num(o.goalW??o.weeklyGoalHours)||15);
-  b.sel=IDS.includes(o.sel)?o.sel:'fonaments';b.range=o.range===30?30:7;b.mode=o.mode==='pomo'?'pomo':'free';
+  b.pomo=!!o.pomo;b.nt=!!o.nt;b.pw=Math.min(180,Math.max(1,num(o.pw)||50));b.pb=Math.min(60,Math.max(1,num(o.pb)||10));
+  b.sel=IDS.includes(o.sel)?o.sel:'fonaments';b.range=o.range===30?30:7;b.mode=o.mode==='pomo'&&b.pomo?'pomo':'free';
   {const sb=[...new Set((Array.isArray(o.subs)?o.subs:[]).filter(i=>SUBJ[i]&&SUBJ[i].g))];
     let cr=(Array.isArray(o.crs)?o.crs:[]).filter(g=>GR[g]);if(!cr.length)cr=Object.keys(GR).filter(g=>sb.some(i=>SUBJ[i].g===g));if(!cr.length)cr=['primero'];
     b.crs=Object.keys(GR).filter(g=>cr.includes(g));
@@ -61,7 +62,7 @@ function clean(p){
     b.subs=sx;b.cg=GR[o.cg]?o.cg:'';if(!b.subs.includes(b.sel)&&b.sel!=='otros')b.sel=b.subs[0]}
   /* Sesión en curso: se recupera al recargar o reabrir (queda en pausa, lista para «Reanudar» o «Terminar»). */
   b.phase=o.phase===1?1:0;b.cur=num(o.cur,86400);b.curAt=b.cur>0?num(o.curAt,1e13):0;
-  {const r=num(o.rem,POMO[b.phase]);b.rem=r>0?r:POMO[b.phase]}
+  {const L=(b.phase?b.pb:b.pw)*60,r=num(o.rem,L);b.rem=r>0&&r<=L?r:L}
   IDS.forEach(i=>{
     b.tot[i]=num(o.tot?.[i]??o.subjects?.[i]?.totalSeconds);
   });
@@ -77,7 +78,8 @@ function clean(p){
   b.sess=(Array.isArray(o.sess??o.sessions)?(o.sess??o.sessions):[]).map(x=>({s:x.s??x.subjectId,d:num(x.d??x.durationSeconds,86400),at:x.at??(Date.parse(x.dateISO)||0),n:String(x.n??x.note??'').slice(0,60)})).filter(x=>IDS.includes(x.s)&&x.d>0).slice(0,50);
   return b;
 }
-function load(){let r;try{r=JSON.parse(localStorage.getItem(KEY)||localStorage.getItem(OLD))}catch(e){}S=clean(r)}
+const applyPomo=()=>{POMO[0]=S.pw*60;POMO[1]=S.pb*60};
+function load(){let r;try{r=JSON.parse(localStorage.getItem(KEY)||localStorage.getItem(OLD))}catch(e){}S=clean(r);applyPomo()}
 /* Guardado con límite de frecuencia (throttle): como mucho una escritura cada 3 s.
    Antes era un debounce: tick() llama a save() cada segundo y cada llamada reiniciaba el temporizador de 3 s,
    así que mientras el cronómetro corría NUNCA se escribía nada en localStorage (solo al pausar o cerrar). */
@@ -105,7 +107,7 @@ function tick(){
   const now=Date.now(),d=Math.floor((now-last)/1000);if(d<1||!S.run)return;last+=d*1000;
   if(S.mode==='free'){S.cur+=d;S.curAt=now;addTime(S.run,d)}
   else{S.rem-=d;if(S.phase===0){S.cur+=d;S.curAt=now;addTime(S.run,d)}
-    if(S.rem<=0){bell();if(S.phase===0){endSession('Pomodoro');S.phase=1;S.rem=POMO[1];toast('Pomodoro completado. Descansa 10 minutos.')}
+    if(S.rem<=0){bell();if(S.phase===0){endSession('Pomodoro');S.phase=1;S.rem=POMO[1];toast('Pomodoro completado. Descansa '+S.pb+' minutos.')}
       else{S.phase=0;S.rem=POMO[0];S.run=null;stop();toast('Descanso terminado.');render()}}}
   paint();if(++tick5%30===0)sync();save();
 }

@@ -31,7 +31,7 @@ function study(){
   <div class="ring"><svg viewBox="0 0 100 100"><circle class="tr" cx="50" cy="50" r="45" style="stroke-width:5"/><circle class="pg" id="pg" cx="50" cy="50" r="45" style="stroke-width:5;stroke-dasharray:${circ};stroke-dashoffset:${circ*(1-f0)};stroke-opacity:${f0>.002?1:0}"/></svg>
   <div class="clock"><b id="tm"></b><span id="sub"></span></div></div>
   <div class="ctl"><button class="go" id="go">${S.run?'Pausar':(S.cur>0||(S.mode==='pomo'&&S.rem<POMO[S.phase]))?'Reanudar':'Empezar'}</button>${S.cur>0||S.run?'<button class="sec" id="fin">Terminar</button>':''}</div>
-  ${pill('mode',[['free','Libre'],['pomo','Pomodoro 50/10']],S.mode,'data-mode')}</div>
+  ${S.pomo?pill('mode',[['free','Libre'],['pomo',`Pomodoro ${S.pw}/${S.pb}`]],S.mode,'data-mode'):''}</div>
   <div class="row"><div class="card st"><span class="lb">Hoy</span><b id="v-today"></b><div class="bar"><i id="gbar"></i></div><small id="gtxt"></small></div>
   <div class="card st"><span class="lb">Esta semana</span><b id="v-week"></b><div class="bar"><i id="wbar"></i></div><small id="wtxt"></small></div>
   <div class="card st fire" id="stk-card"><svg class="bgf" viewBox="0 0 24 24" aria-hidden="true"><use href="#flame"/></svg><span class="lb"><svg class="fl" id="stk-ico" viewBox="0 0 24 24" aria-hidden="true"><use href="#flame"/></svg></span><b id="v-streak"></b><small id="stk-note"></small><div class="chk" id="stk-chk"></div></div></div>`;
@@ -425,9 +425,18 @@ function chatAdd(m){
 let chatCh=null;
 const rowMsg=r=>({k:String(r.id),uid:r.uid,nick:r.nick,color:r.color,text:r.text,ts:Date.parse(r.ts)||Date.now()});
 function addMsg(r){
-  const m=rowMsg(r);if(fb.msgs.some(x=>x.k===m.k))return;
-  fb.msgs.push(m);if(fb.msgs.length>80)fb.msgs.shift();chatAdd(m);
+  const m=rowMsg(r);if(fb.msgs.some(x=>x.k===m.k))return false;
+  fb.msgs.push(m);if(fb.msgs.length>80)fb.msgs.shift();chatAdd(m);return true;
 }
+let AC;
+function ding(){try{AC=AC||new(window.AudioContext||webkitAudioContext)();AC.resume();const o=AC.createOscillator(),g=AC.createGain(),t=AC.currentTime;o.frequency.setValueAtTime(988,t);o.frequency.setValueAtTime(1319,t+.12);o.connect(g);g.connect(AC.destination);g.gain.setValueAtTime(.2,t);g.gain.exponentialRampToValueAtTime(.001,t+.5);o.start(t);o.stop(t+.5)}catch(e){}}
+function notifyMsg(r){
+  if(!S.nt||r.uid===fb.uid||(!document.hidden&&S.view==='group'&&S.gv==='chat'))return;
+  const nk=NICK_RE.test(String(r.nick))?String(r.nick):'Anónimo',t=String(r.text||'').slice(0,300);ding();
+  try{if(document.hidden&&'Notification' in window&&Notification.permission==='granted')return void new Notification(nk,{body:t,tag:'chat'})}catch(e){}
+  toast(nk+': '+t,4000);
+}
+function enableNotif(){ding();try{if(!('Notification' in window)||Notification.permission==='denied')toast('Avisos del navegador no disponibles: solo sonará dentro de la app.',4000);else if(Notification.permission==='default')Notification.requestPermission()}catch(e){}}
 let chatG='',noGrp=false;
 async function loadMsgs(){
   let q=sb.from('chat_messages').select('*').order('ts',{ascending:false}).limit(50);if(!noGrp)q=q.eq('grp',chatG);
@@ -444,7 +453,7 @@ function listenChat(on){
   if(on&&!chatCh){
     chatG=g;fb.msgs=[];
     chatCh=sb.channel('mathstudy:chat:'+g)
-      .on('postgres_changes',{event:'INSERT',schema:'public',table:'chat_messages',...(noGrp?{}:{filter:'grp=eq.'+g})},p=>addMsg(p.new))
+      .on('postgres_changes',{event:'INSERT',schema:'public',table:'chat_messages',...(noGrp?{}:{filter:'grp=eq.'+g})},p=>{if(addMsg(p.new))notifyMsg(p.new)})
       .on('postgres_changes',{event:'DELETE',schema:'public',table:'chat_messages'},p=>{const k=String(p.old.id);fb.msgs=fb.msgs.filter(m=>m.k!==k);const e=document.getElementById('m_'+k);if(e)e.remove()})
       .subscribe(s=>{if(s==='SUBSCRIBED')loadMsgs()});
   }
@@ -481,11 +490,15 @@ function settings(){
   <label>Asignaturas</label><div class="subs">${Object.keys(GR).map(g=>`<div data-sgp="${g}"${crs.has(g)?'':' hidden'}><div class="sgh"><span>${GR[g].n}</span><button type="button" class="tgl" data-gt="${g}">Marcar todas</button></div><div class="sjs">${IDS.filter(i=>SUBJ[i].g===g).map(i=>`<button type="button" class="sj${subs.has(i)?' on':''}" data-sj="${i}" style="--c:${SUBJ[i].c}">${SUBJ[i].n}</button>`).join('')}</div></div>`).join('')}</div>
   <label>Color</label><div class="cols">${SPECTRUM.map(c=>`<button type="button" data-col="${c}" class="${c===S.color?'on':''}" style="background:${c}" aria-label="Color ${c}"></button>`).join('')}</div>
   <div class="gr2"><div><label for="gd">Meta diaria (h)</label><input type="number" id="gd" min="1" max="24" value="${S.goalD}"></div><div><label for="gw">Meta semanal (h)</label><input type="number" id="gw" min="1" max="168" value="${S.goalW}"></div></div>
+  <label>Pomodoro</label><div class="trow"><span>Activar temporizador Pomodoro</span><button type="button" class="swt${S.pomo?' on':''}" data-tg="po" role="switch" aria-checked="${S.pomo}"></button></div>
+  <div class="gr2" id="pms"${S.pomo?'':' hidden'}><div><label for="pw">Estudio (min)</label><input type="number" id="pw" min="1" max="180" value="${S.pw}"></div><div><label for="pb">Descanso (min)</label><input type="number" id="pb" min="1" max="60" value="${S.pb}"></div></div>
+  <label>Notificaciones</label><div class="trow"><span>Aviso con sonido de mensajes del chat</span><button type="button" class="swt${S.nt?' on':''}" data-tg="nt" role="switch" aria-checked="${S.nt}"></button></div>
   <div class="acts"><button class="ghost" id="dcl">Cerrar</button><button class="mini" id="ok">Guardar</button></div>`;
   d.open||d.showModal();
-  let col=S.color;
+  let col=S.color,po=S.pomo,nt=S.nt;
   const sync2=()=>d.querySelectorAll('[data-sj]').forEach(b=>b.classList.toggle('on',subs.has(b.dataset.sj)));
   d.onclick=e=>{
+    const tg=e.target.closest('[data-tg]');if(tg){const v=tg.dataset.tg==='po'?(po=!po):(nt=!nt);tg.classList.toggle('on',v);tg.setAttribute('aria-checked',v);if(tg.dataset.tg==='po')$('#pms').hidden=!po;else if(v)enableNotif();return}
     const c=e.target.closest('[data-col]');if(c){col=c.dataset.col;d.querySelectorAll('[data-col]').forEach(b=>b.classList.toggle('on',b===c));return}
     const cr=e.target.closest('[data-cr]');if(cr){const g=cr.dataset.cr,ids=IDS.filter(i=>SUBJ[i].g===g);
       if(crs.has(g)){if(crs.size>1){crs.delete(g);ids.forEach(i=>subs.delete(i))}else toast('Debes tener al menos un curso')}else{crs.add(g);ids.forEach(i=>subs.add(i))}
@@ -496,7 +509,9 @@ function settings(){
   $('#dcl').onclick=()=>d.close();
   if(acc){$('#cpw').onclick=pwDlg;$('#lo').onclick=logout}
   else{$('#reg').onclick=()=>authDlg('reg');$('#log').onclick=()=>authDlg('log')}
-  $('#ok').onclick=()=>{S.crs=Object.keys(GR).filter(g=>crs.has(g));S.subs=IDS.filter(i=>subs.has(i)&&crs.has(SUBJ[i].g));if(!S.subs.includes(S.sel)&&S.sel!=='otros'&&!S.run)S.sel=S.subs[0];if(!userGroups().includes(S.cg))S.cg='';S.color=col;S.goalD=Math.min(24,num($('#gd').value)||3);S.goalW=Math.min(168,num($('#gw').value)||15);save(true);d.close();render();sync(true);toast('Guardado')};
+  $('#ok').onclick=()=>{const np=Math.min(180,Math.max(1,num($('#pw').value)||50)),nb=Math.min(60,Math.max(1,num($('#pb').value)||10)),chg=np!==S.pw||nb!==S.pb;S.pomo=po;S.pw=np;S.pb=nb;S.nt=nt;applyPomo();
+    if(S.mode==='pomo'&&(!po||chg)){finish();if(!po)S.mode='free'}else if(S.mode!=='pomo'){S.phase=0;S.rem=POMO[0]}
+    S.crs=Object.keys(GR).filter(g=>crs.has(g));S.subs=IDS.filter(i=>subs.has(i)&&crs.has(SUBJ[i].g));if(!S.subs.includes(S.sel)&&S.sel!=='otros'&&!S.run)S.sel=S.subs[0];if(!userGroups().includes(S.cg))S.cg='';S.color=col;S.goalD=Math.min(24,num($('#gd').value)||3);S.goalW=Math.min(168,num($('#gw').value)||15);save(true);d.close();render();sync(true);toast('Guardado')};
 }
 
 /* ---------- Eventos ---------- */
