@@ -97,7 +97,8 @@ function syncListeners(){
   const vis=!document.hidden,g=S.view==='group'&&vis,qv=S.view==='quests'&&vis;
   if(vis||S.run){clearTimeout(hideT);hideT=null;openPres()}
   else if(!hideT)hideT=setTimeout(()=>{hideT=null;if(document.hidden&&!S.run){closePres();sync(true,true)}},8000);
-  if(g&&S.gv!=='chat'&&Date.now()-usersAt>40000){usersAt=Date.now();fetchUsers()}
+  // Fetch users for both group view (except chat) and quests view (for Objetivo subtab)
+  if((g&&S.gv!=='chat'||qv)&&Date.now()-usersAt>40000){usersAt=Date.now();fetchUsers()}
   if(((g&&S.gv!=='chat')||qv)&&Date.now()-msAt>40000){msAt=Date.now();fetchMissions()}
   listenChat((g&&S.gv==='chat')||(S.nt&&fb.acct));
 }
