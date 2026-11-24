@@ -8,8 +8,8 @@ const DEFAULT_SUBS=['fonaments','algebra','analisi'];
 const NOWRAP='otros'; // no cuenta para «más/menos estudiada» ni «asignatura en alza/caída» del Recap
 const IDS=Object.keys(SUBJ),COLORS=['#6366f1','#10b981','#f43f5e','#f59e0b','#8b5cf6','#0ea5e9','#ec4899','#14b8a6'];
 const SYM=['∀','∃','∈','⊂','∪','∩','ℝ','ℕ','ℤ','∑','∫','∞','⇒','⇔','≠','≤','≥','λ','ϵ','δ'];
-const blank=()=>({rev:0,theme:'light',view:'study',sel:'fonaments',mode:'free',pomo:false,pw:50,pb:10,nt:false,rank:'daily',gv:'friends',range:0,nick:'',color:COLORS[0],goalD:3,goalW:15,
-  tot:Object.fromEntries(Object.keys(SUBJ).map(i=>[i,0])),subs:[...DEFAULT_SUBS],crs:['primero'],cg:'',hist:{},sess:[],wk:{},ws:{},md:{},
+const blank=()=>({rev:0,theme:'light',view:'study',sel:'fonaments',mode:'free',pomo:false,pw:50,pb:10,nt:false,rank:'daily',gv:'friends',range:0,nick:'',color:COLORS[0],goalD:3,goalW:15,qsub:'objetivo',
+  tot:Object.fromEntries(Object.keys(SUBJ).map(i=>[i,0])),subs:[...DEFAULT_SUBS],crs:['primero'],cg:'',hist:{},sess:[],wk:{},ws:{},md:{},q:{done:{},bg:{}},
   run:null,cur:0,curAt:0,phase:0,rem:POMO[0]});
 let S=blank(),last=0,loop=null,tick5=0,saveT=0;
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -26,8 +26,8 @@ const num=(v,max=1e9)=>Math.min(max,Math.max(0,Math.floor(+v||0)));
 const DAY_OFF=4*36e5,lnow=(t=Date.now())=>new Date(t-DAY_OFF);
 const dk=(d=lnow())=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const monday=()=>{const d=lnow();d.setHours(0,0,0,0);d.setDate(d.getDate()-((d.getDay()+6)%7));return d};
-/* Semana de estudio: del viernes 13:50 al siguiente viernes 13:50 (como en la app anterior). El tiempo del viernes antes de las 13:50 se guarda en hist[día].q y cuenta para la semana anterior. */
-const CUT=9*60+50; // 13:50 reales = 09:50 en lnow (día desplazado 4 h)
+/* Semana de estudio: del viernes 14:00 al siguiente viernes 14:00 (como en la app anterior). El tiempo del viernes antes de las 14:00 se guarda en hist[día].q y cuenta para la semana anterior. */
+const CUT=10*60; // 14:00 reales = 10:00 en lnow (día desplazado 4 h)
 const isPre=(d=lnow())=>d.getDay()===5&&d.getHours()*60+d.getMinutes()<CUT;
 const weekFri=()=>{const d=lnow(),s=new Date(d);s.setHours(0,0,0,0);s.setDate(s.getDate()-(d.getDay()+2)%7-(isPre(d)?7:0));return s};
 const qOf=(v,ids)=>ids.reduce((a,i)=>a+((v.q&&v.q[i])||0),0);
@@ -76,6 +76,11 @@ function clean(p){
     const e={};Object.keys(v).forEach(i=>{const z=String(v[i]),y=/^\d{4}-\d{2}-\d{2}$/.test(z)?'0000000000000:'+z:z;if(c<3000&&i.length<=40&&/^\d{13}:(\d{4}-\d{2}-\d{2})?$/.test(y)){e[i]=y;c++}});if(Object.keys(e).length)b.md[m]=e})}
   const ws=o.ws;if(ws&&typeof ws==='object')Object.keys(ws).filter(k=>/^\d{4}-\d{2}-\d{2}$/.test(k)&&ws[k]).sort().slice(-12).forEach(k=>{b.ws[k]=1});
   b.sess=(Array.isArray(o.sess??o.sessions)?(o.sess??o.sessions):[]).map(x=>({s:x.s??x.subjectId,d:num(x.d??x.durationSeconds,86400),at:x.at??(Date.parse(x.dateISO)||0),n:String(x.n??x.note??'').slice(0,60)})).filter(x=>IDS.includes(x.s)&&x.d>0).slice(0,50);
+  /* Retos: done = {idDeReto:'AAAA-MM-DD'}, bg = {logro:'AAAA-MM-DD'}. Se validan y se limitan para no crecer sin control. */
+  {const qs=o.q&&typeof o.q==='object'?o.q:{},qd={},qb={};
+    Object.keys(qs.done||{}).filter(k=>typeof k==='string'&&k.length<=80&&/^[dwb]:/.test(k)).slice(-2000).forEach(k=>{const v=String(qs.done[k]||'');if(/^\d{4}-\d{2}-\d{2}$/.test(v))qd[k]=v});
+    Object.keys(qs.bg||{}).filter(k=>/^[a-z0-9_-]{1,30}$/.test(k)).slice(-100).forEach(k=>{const v=String(qs.bg[k]||'');if(/^\d{4}-\d{2}-\d{2}$/.test(v))qb[k]=v});
+    b.q={done:qd,bg:qb}}
   return b;
 }
 const applyPomo=()=>{POMO[0]=S.pw*60;POMO[1]=S.pb*60};
@@ -118,7 +123,11 @@ function toggle(){
   else{load2();S.run=S.sel;start()}
   render();sync(true);save(true);
 }
-function load2(){try{const r=JSON.parse(localStorage.getItem(KEY));if(r){const o=clean(r);S.tot=o.tot;S.hist=o.hist;S.sess=o.sess;S.wk=o.wk;S.ws={...S.ws,...o.ws}}}catch(e){}}
+function load2(){try{const r=JSON.parse(localStorage.getItem(KEY));if(r){const o=clean(r);S.tot=o.tot;S.hist=o.hist;S.sess=o.sess;S.wk=o.wk;S.ws={...S.ws,...o.ws};
+  const d={...(S.q?.done||{})},b={...(S.q?.bg||{})};
+  Object.keys(o.q?.done||{}).forEach(k=>{if(!d[k]||o.q.done[k]<d[k])d[k]=o.q.done[k]});
+  Object.keys(o.q?.bg||{}).forEach(k=>{if(!b[k]||o.q.bg[k]<b[k])b[k]=o.q.bg[k]});
+  S.q={done:d,bg:b}}}catch(e){}}
 function endSession(note){if(S.cur>=10){const at=S.curAt||Date.now();S.sess.unshift({s:S.run||S.sel,d:S.cur,at,n:note});S.sess=S.sess.slice(0,50);const w=wkRec(dk(wkStart(lnow(at))),true);if(!w.l||S.cur>w.l.d)w.l={d:S.cur,s:S.run||S.sel}}S.cur=0;S.curAt=0}
 function finish(){const had=S.cur;stop();endSession(S.mode==='pomo'?'Pomodoro':'Libre');if(had>=10)toast('Sesión guardada: '+hm(had));S.phase=0;S.rem=POMO[0];render();sync(true);save(true)}
 function bell(){try{const a=new(window.AudioContext||webkitAudioContext)(),o=a.createOscillator(),g=a.createGain();o.frequency.value=880;o.connect(g);g.connect(a.destination);g.gain.setValueAtTime(.2,a.currentTime);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+1.4);o.start();o.stop(a.currentTime+1.5)}catch(e){}}
@@ -178,7 +187,7 @@ const cgGoal=k=>CG_MIN+cgHash('mates-'+k)%(CG_MAX-CG_MIN+1);   // horas
 function dayLogArr(g){const f=dayF(g),o=[],d=lnow();for(let i=0;i<CG_LOOK;i++){const k=dk(d),t=f(k);if(t>0)o.push(k+':'+Math.min(1440,Math.floor(t/60)));d.setDate(d.getDate()-1)}return o}
 function parseDl(a){const o={};(Array.isArray(a)?a:[]).slice(0,CG_LOOK+5).forEach(x=>{const p=String(x).split(':');if(/^\d{4}-\d{2}-\d{2}$/.test(p[0]))o[p[0]]=num(p[1],1440)});return o}
 function commStats(ms){
-  const k0=dk(),secOf=k=>ms.reduce((a,m)=>a+(k===k0?m.daily:(m.dl[k]||0)*60),0);
+  const k0=dk(),secOf=k=>ms.reduce((a,m)=>a+(k===k0?m.daily:((m.dl||{})[k]||0)*60),0);
   const today=secOf(k0),done=today>=cgGoal(k0)*3600;
   let n=0;const d=lnow();if(!done)d.setDate(d.getDate()-1);
   while(n<CG_LOOK&&secOf(dk(d))>=cgGoal(dk(d))*3600){n++;d.setDate(d.getDate()-1)}

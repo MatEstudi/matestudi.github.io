@@ -126,7 +126,7 @@ function ranksList(){
   const ri=rankOf(stats().total);
   return `<div class="rkl">${RANKS.map((x,i)=>`<div class="card rkr${i>ri?' rlk':''}${i===ri?' cu':''}"><div class="rkb bg${i}">${x.s}</div><div class="n"><b>${x.n}</b><small>${x.h?x.h+' h de estudio':'Rango inicial'}</small></div><span class="rks">${i<ri?'✓ Conseguido':i===ri?'Actual':'🔒'}</span></div>`).join('')}</div>`;
 }
-/* ---------- Recap: semana de sábado a viernes; se desbloquea el viernes a las 13:50 ---------- */
+/* ---------- Recap: semana de sábado a viernes; se desbloquea el viernes a las 14:00 ---------- */
 const DAYN=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'],cap1=s=>s[0].toUpperCase()+s.slice(1);
 const wkStart=(d=lnow())=>{const x=new Date(d);x.setHours(0,0,0,0);x.setDate(x.getDate()-((x.getDay()+1)%7));return x};
 const addD=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
@@ -145,7 +145,7 @@ const EQ=[
   ['🏃',s=>s/9.58,(f)=>`ver ${f} ${f==='1'?'vez':'veces'} el récord mundial de Usain Bolt en los 100 m (9,58 s)`]
 ];
 const fmtN=n=>(n<10?Math.round(n*10)/10:Math.round(n)).toLocaleString('es');
-const WRAP_SECS=0; // pon 5 para probar con una cuenta atrás de 5 segundos; 0 = desbloqueo real los viernes a las 13:50
+const WRAP_SECS=0; // pon 5 para probar con una cuenta atrás de 5 segundos; 0 = desbloqueo real los viernes a las 14:00
 let wrapOff=0,wrapT0=0,wrapReveal=false;
 setInterval(()=>{document.querySelectorAll('[data-cd]').forEach(e=>{
   const r=Math.floor((+e.dataset.cd-Date.now())/1000);
@@ -218,7 +218,7 @@ function wrapView(g){
   if(!unl){
     wrapReveal=true; /* si el contador estaba en marcha, al llegar a cero toca el botón Comenzar aunque la semana ya se hubiera visto */
     const ce=addD(cs,6),pr=WRAP_SECS?Math.min(1,Math.max(0,1-(ut-now)/(WRAP_SECS*1000))):Math.min(1,Math.max(0,(now-cs-DAY_OFF)/(ut-cs-DAY_OFF)));
-    h+=`<div class="card lockc"><div class="lkc">🔒</div><small class="k">Semana del ${dm(cs)} al ${dm(ce)}</small><div class="big">Tu semana tiene algo que contarte</div><div class="cd" data-cd="${ut.getTime()}">--</div><div class="bar"><i style="width:${pr*100}%"></i></div><div class="cap">${WRAP_SECS?'Se revela en unos segundos…':'Se revela el viernes a las 13:50. Hasta entonces, sigue estudiando…'}</div></div>`;
+    h+=`<div class="card lockc"><div class="lkc">🔒</div><small class="k">Semana del ${dm(cs)} al ${dm(ce)}</small><div class="big">Tu semana tiene algo que contarte</div><div class="cd" data-cd="${ut.getTime()}">--</div><div class="bar"><i style="width:${pr*100}%"></i></div><div class="cap">${WRAP_SECS?'Se revela en unos segundos…':'Se revela el viernes a las 14:00. Hasta entonces, sigue estudiando…'}</div></div>`;
   }
   h+=`<div class="wnav"><button data-wo="1" aria-label="Semana anterior" ${wrapOff>=7?'disabled':''}>‹</button><div style="text-align:center"><b>Semana del ${dm(st)} al ${dm(en)}</b><div class="hint" style="margin:0">Sábado a viernes</div></div><button data-wo="-1" aria-label="Semana siguiente" ${wrapOff<=0?'disabled':''}>›</button></div>`;
   const D=wrapData(st,g);
@@ -288,7 +288,7 @@ function wrapView(g){
   }
   wrapLast={k:D.k,wo:wrapOff,html:h.slice(i0)+'</div>',label:`Semana del ${dm(st)} al ${dm(en)}`};
   if(pend)return h.slice(0,i0);
-  return h+'</div><div class="hint">El Recap se desbloquea cada viernes a las 13:50 y cuenta de sábado a viernes.'+(C?' Los datos de la comunidad se actualizan cuando cada persona pausa el cronómetro o cierra la app.':'')+'</div>';
+  return h+'</div><div class="hint">El Recap se desbloquea cada viernes a las 14:00 y cuenta de sábado a viernes.'+(C?' Los datos de la comunidad se actualizan cuando cada persona pausa el cronómetro o cierra la app.':'')+'</div>';
 }
 
 /* ---------- Recap: modo tarjetas. La primera vez que se ve una semana salen una a una y al final queda el resumen completo ---------- */
@@ -355,9 +355,9 @@ function commView(ms){
   <div class="av ${m.on?'on':''}" style="background:${m.color}">${bb(m.nick)}</div>
   <div class="n"><b>${esc(m.nick)}${m.me?' (tú)':''}</b>${m.act?'<small class="live">Estudiando ahora</small>':''}<div class="bar"><i style="width:${Math.min(100,p).toFixed(1)}%;background:${m.color}"></i></div></div><div class="t">${hm(m.daily)}</div></div>`}).join('')}</div>`
     :`<div class="empty">Todavía no hay nadie en la comunidad.</div>`;
-  return h+missView(ms);
+  return h;
 }
-const GV=[['friends','Amigos'],['rank','Ranking'],['comm','Objetivo'],['chat','Chat'],['wrap','Recap'],['glob','Global']];
+const GV=[['friends','Amigos'],['rank','Ranking'],['chat','Chat'],['wrap','Recap'],['glob','Global']];
 const gview=(all,g)=>all.filter(m=>m.grp[g]).map(m=>({...m,...m.grp[g]}));
 function group(){
   const all=members(),g=curG(),glob=S.gv==='glob',ms=glob?all:gview(all,g);
@@ -367,7 +367,6 @@ function group(){
   if(!S.nick)h+=`<div class="card" style="margin-bottom:14px;text-align:center">Crea una cuenta para aparecer en la comunidad: tu nombre de usuario será tu nombre en el ranking.<div class="ctl"><button class="mini" data-reg="1">Crear cuenta</button></div></div>`;
   if(!fb.ok)h+=`<div class="hint" style="margin-bottom:10px">Sin conexión: la comunidad no está disponible, pero tu cronómetro funciona igual.</div>`;
   if(glob)return h+globView(all);
-  if(S.gv==='comm')return h+commView(ms);
   if(S.gv==='chat')return h+chatView();
   if(S.gv==='friends'){
     const by=(a,k)=>a.sort((x,y)=>y[k]-x[k]),act=by(ms.filter(m=>m.act),'daily'),onl=by(ms.filter(m=>m.on&&!m.act),'daily'),off=by(ms.filter(m=>!m.on),'seen');
@@ -399,15 +398,15 @@ function rankView(ms){
   return h;
 }
 function hdr(){const e=$('#mename');if(e)e.innerHTML=esc(S.nick||'Tu nombre')+(S.nick?rkT(stats().total):'')}
-const NAVV=['study','stats','group'];let lastKey='';
+const NAVV=['study','stats','group','quests'];let lastKey='';
 function render(){
   setAcc();
-  const nv=$('#nav');nv.style.setProperty('--i',Math.max(0,NAVV.indexOf(S.view)));
+  const nv=$('#nav');nv.style.setProperty('--i',Math.max(0,NAVV.indexOf(S.view)));nv.style.setProperty('--n',NAVV.length);
   nv.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v===S.view));
   $('#meav').textContent=S.nick?bb(S.nick):'?';$('#meav').style.background=S.color;hdr();
   syncListeners();
   const mn=$('#main');
-  mn.innerHTML=S.view==='study'?study():S.view==='stats'?statsView():group();
+  mn.innerHTML=S.view==='study'?study():S.view==='stats'?statsView():S.view==='quests'?questsView():group();
   segAnim();
   if(S.view==='study')paint();
   if(S.view==='group'&&S.gv==='friends')fixTrain();
@@ -533,14 +532,15 @@ document.addEventListener('click',e=>{
   if((x=q('#nav button')))return S.view=x.dataset.v,render();
   if((x=q('[data-sub]'))){if(S.run)return toast('Pausa el cronómetro para cambiar de asignatura');S.sel=x.dataset.sub;save();return render()}
   if(q('#go'))return toggle();
-  if(q('#fin'))return finish();
+  if(q('#fin')){finish();if(typeof questsCheck==='function')questsCheck(true);if(typeof questMiniRefresh==='function')questMiniRefresh();return}
   if(q('[data-rk]'))return rkOpen=!rkOpen,render();
   if((x=q('[data-mode]'))){if(S.run)return toast('Pausa el cronómetro para cambiar de modo');S.mode=x.dataset.mode;S.cur=0;S.phase=0;S.rem=POMO[0];save();return render()}
   if((x=q('[data-range]')))return S.range=+x.dataset.range,save(),render();
     if((x=q('[data-wo]')))return wrapOff+=+x.dataset.wo,render();
   if(q('[data-wrep]'))return openStory();
-  if((x=q('[data-mi]'))){const[a,b]=x.dataset.mi.split('|');(S.md[a]=S.md[a]||{})[b]=String(Date.now()).padStart(13,'0')+':'+(mv(S.md[a][b])?'':dk());save(true);sync(true);render();return}
+  if((x=q('[data-mi]'))){const[a,b]=x.dataset.mi.split('|');(S.md[a]=S.md[a]||{})[b]=String(Date.now()).padStart(13,'0')+':'+(mv(S.md[a][b])?'':dk());save(true);sync(true);if(typeof questsCheck==='function')questsCheck(true);render();return}
   if((x=q('[data-cg]')))return S.cg=x.dataset.cg,save(),render();
+  if((x=q('[data-qsub]')))return S.qsub=x.dataset.qsub,save(),render();
   if((x=q('[data-gv]')))return S.gv=x.dataset.gv,render();
   if(q('#cs'))return sendMsg();
   if((x=q('[data-delm]')))return delMsg(x.dataset.delm);

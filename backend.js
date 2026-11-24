@@ -94,13 +94,11 @@ function trackPres(){
 /* Qué escuchar según la pantalla (se llama en cada render) */
 function syncListeners(){
   if(!fb.ok)return;
-  const vis=!document.hidden,g=S.view==='group'&&vis;
+  const vis=!document.hidden,g=S.view==='group'&&vis,qv=S.view==='quests'&&vis;
   if(vis||S.run){clearTimeout(hideT);hideT=null;openPres()}
   else if(!hideT)hideT=setTimeout(()=>{hideT=null;if(document.hidden&&!S.run){closePres();sync(true,true)}},8000);
-  if(g){
-    if(S.gv!=='chat'&&Date.now()-usersAt>40000){usersAt=Date.now();fetchUsers()}
-    if(S.gv!=='chat'&&Date.now()-msAt>40000){msAt=Date.now();fetchMissions()}
-  }
+  if(g&&S.gv!=='chat'&&Date.now()-usersAt>40000){usersAt=Date.now();fetchUsers()}
+  if(((g&&S.gv!=='chat')||qv)&&Date.now()-msAt>40000){msAt=Date.now();fetchMissions()}
   listenChat((g&&S.gv==='chat')||(S.nt&&fb.acct));
 }
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&fb.ok&&fb.acct&&S.nick)sync(true)});
@@ -164,6 +162,8 @@ function mergeProg(a,b){
   new Set([...Object.keys(wa),...Object.keys(wb)]).forEach(k=>{const x=wa[k],y=wb[k];r.wk[k]=(!y||(x&&x.f+x.p>=y.f+y.p))?x:y});
   Object.keys(r.wk).sort().slice(0,-12).forEach(k=>delete r.wk[k]);
   r.ws={...(a.ws||{}),...(b.ws||{})};Object.keys(r.ws).sort().slice(0,-12).forEach(k=>delete r.ws[k]);
+  r.q={done:{},bg:{}};
+  [a.q,b.q].forEach(o=>['done','bg'].forEach(k=>{const s=(o&&o[k])||{};Object.keys(s).forEach(id=>{const e=r.q[k];if(!e[id]||s[id]<e[id])e[id]=s[id]})}));
   [a.md||{},b.md||{}].forEach(s=>Object.keys(s).forEach(m=>Object.keys(s[m]).forEach(i=>{const e=r.md[m]||(r.md[m]={});if(!e[i]||s[m][i]>e[i])e[i]=s[m][i]})));
   const seen=new Set();
   r.sess=[...a.sess,...b.sess].filter(x=>{const q=x.at+'|'+x.s+'|'+x.d;if(seen.has(q))return false;seen.add(q);return true}).sort((p,q)=>q.at-p.at).slice(0,50);
@@ -171,7 +171,7 @@ function mergeProg(a,b){
 }
 /* Progreso en la nube: como mucho una escritura cada 5 min mientras estudias, y al instante al pausar, terminar o cambiar ajustes. */
 let pgQ=Promise.resolve(),lastPg='',lastPgAt=0;
-const progObj=()=>({tot:S.tot,hist:S.hist,sess:S.sess,wk:S.wk,ws:S.ws,goalD:S.goalD,goalW:S.goalW,nick:S.nick,color:S.color,subs:S.subs,crs:S.crs,md:S.md,pomo:S.pomo,pw:S.pw,pb:S.pb});
+const progObj=()=>({tot:S.tot,hist:S.hist,sess:S.sess,wk:S.wk,ws:S.ws,goalD:S.goalD,goalW:S.goalW,nick:S.nick,color:S.color,subs:S.subs,crs:S.crs,md:S.md,pomo:S.pomo,pw:S.pw,pb:S.pb,q:S.q});
 const syncProgress=(force,keepalive)=>{
   if(keepalive){
     if(!fb.ok||!fb.acct||!S.nick)return;
@@ -194,8 +194,8 @@ async function pushProg(force){
     if(row&&row.data){
       const c=clean(row.data),cr=Math.max(0,Math.floor(Number(row.rev))||0);
       if(cr>(S.rev||0)){ /* ajuste manual desde Supabase (rev + 1): la nube manda, se sustituye lo local */
-        S.tot=c.tot;S.hist=c.hist;S.sess=c.sess;S.wk=c.wk;S.ws={...S.ws,...c.ws};S.md=c.md;S.rev=cr;stop();render()}
-      else{const m=mergeProg(S,c);S.tot=m.tot;S.hist=m.hist;S.sess=m.sess;S.wk=m.wk;S.ws=m.ws;S.md=m.md;
+        S.tot=c.tot;S.hist=c.hist;S.sess=c.sess;S.wk=c.wk;S.ws={...S.ws,...c.ws};S.md=c.md;S.q=c.q;S.rev=cr;stop();render()}
+      else{const m=mergeProg(S,c);S.tot=m.tot;S.hist=m.hist;S.sess=m.sess;S.wk=m.wk;S.ws=m.ws;S.md=m.md;S.q=m.q;
         if(!S.nick){S.nick=c.nick;S.color=c.color;S.subs=c.subs;S.crs=c.crs;S.goalD=c.goalD;S.goalW=c.goalW}}
     }
     if(!S.nick)return true;
@@ -331,7 +331,7 @@ function members(){
     else grp.primero=mk(u.todaySeconds,u.weeklySeconds,u.totalSeconds,u.streak,u.streakEnd,u.bestStreak,null); // perfiles antiguos = Primero
     out.push({id,me,nick:String(u.nickname).slice(0,20),color:COLORS.includes(u.avatarColor)?u.avatarColor:COLORS[0],on:!!u.online,act:u.online?u.active:null,since:+u.since||0,seen:+u.lastSeen||+u.updatedAt||0,
       daily:(u.todayDateKey===tk?num(u.todaySeconds,86400):0)+extra,weekly:(u.weekStartKey===wk?num(u.weeklySeconds):0)+extra,total:num(u.totalSeconds)+extra,
-      streak:liveStreak(u),best:Math.max(num(u.bestStreak,36500),liveStreak(u)),grp,ms:mm});
+      streak:liveStreak(u),best:Math.max(num(u.bestStreak,36500),liveStreak(u)),grp,ms:mm,dl:(userGroups().length>1?Object.fromEntries(userGroups().flatMap(g=>dayLogArr(g).map(s=>{const p=s.split(':');return[p[0],num(p[1],1440)]}))):dayLogArr(userGroups()[0]||'primero'))});
   });return out;
 }
 
@@ -345,5 +345,6 @@ async function fetchMissions(){
       dl:/^\d{4}-\d{2}-\d{2}$/.test(r.deadline||'')?r.deadline:'',
       items:(Array.isArray(r.items)?r.items:[]).slice(0,60).map(i=>String(i).replace(/[|]/g,'').trim().slice(0,40)).filter(i=>i&&i!=='_')}));
     if(S.view==='group'&&(S.gv==='comm'||S.gv==='wrap')&&!typing())render();
+    else if(S.view==='quests'&&!typing()){if(typeof questsCheck==='function')questsCheck(true);render()}
   }catch(e){console.warn('Misiones:',e.message||e)}
 }
