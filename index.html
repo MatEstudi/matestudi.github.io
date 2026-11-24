@@ -3,18 +3,24 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>MathStudy Hub</title>
+<title>MatEstudi</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6.5' fill='%236366f1'/%3E%3Cpath d='M16.3 8.1C15.4 6.9 13.9 6.2 12.2 6.2C9.7 6.2 8 7.5 8 9.1C8 10.7 9.6 11.6 12 12C9.5 12.3 7.8 13.2 7.8 14.9C7.8 16.6 9.6 17.9 12.2 17.9C14 17.9 15.4 17.3 16.3 16.1' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#f5f6fa" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d1020" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-title" content="MatEstudi">
 <meta name="color-scheme" content="light dark">
 <script>document.documentElement.dataset.t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'</script>
+<script>if((navigator.hardwareConcurrency||8)<=4||(navigator.deviceMemory||8)<=4)document.documentElement.classList.add('lite')</script>
+<script>addEventListener('error',function(e){var d=document.getElementById('errb')||document.body.appendChild(Object.assign(document.createElement('pre'),{id:'errb'}));d.style.cssText='position:fixed;left:0;right:0;bottom:0;margin:0;padding:10px;background:#7f1d1d;color:#fff;font:12px monospace;z-index:999;white-space:pre-wrap';d.textContent+='Error: '+e.message+' ('+(e.filename||'').split('/').pop()+':'+e.lineno+')\n'});</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=1">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&family=Instrument+Sans:wght@400;500;600&family=Noto+Sans+Math&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="flame" viewBox="0 0 24 24"><path fill="#f97316" d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67z"/><path fill="#fde047" d="M11.71 19c-1.78 0-3.22-1.4-3.22-3.14 0-1.62 1.05-2.76 2.81-3.12 1.77-.36 3.6-1.21 4.62-2.58.39 1.29.59 2.65.59 4.04 0 2.65-2.15 4.8-4.8 4.8z"/></symbol><symbol id="flameB" viewBox="0 0 24 24"><path fill="#2563eb" d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67z"/><path fill="#93c5fd" d="M11.71 19c-1.78 0-3.22-1.4-3.22-3.14 0-1.62 1.05-2.76 2.81-3.12 1.77-.36 3.6-1.21 4.62-2.58.39 1.29.59 2.65.59 4.04 0 2.65-2.15 4.8-4.8 4.8z"/></symbol></svg>
 <div class="wrap">
   <header>
-    <div class="logo"><i>ε</i>MathStudy</div>
+    <div class="logo"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.3 8.1C15.4 6.9 13.9 6.2 12.2 6.2C9.7 6.2 8 7.5 8 9.1C8 10.7 9.6 11.6 12 12C9.5 12.3 7.8 13.2 7.8 14.9C7.8 16.6 9.6 17.9 12.2 17.9C14 17.9 15.4 17.3 16.3 16.1"/></svg></i>MatEstudi</div>
     <div class="tools">
       <button class="me" id="me" aria-label="Perfil y ajustes"><div class="av" id="meav"></div><span id="mename"></span></button>
     </div>
@@ -23,17 +29,16 @@
     <button data-v="study">Estudiar</button>
     <button data-v="stats">Estadísticas</button>
     <button data-v="group">Comunidad</button>
-    <button data-v="more">Más</button>
   </nav>
   <main id="main"></main>
 </div>
 <dialog id="dlg"></dialog>
-<div id="toast" role="status"></div>
+<div id="toast" popover="manual" role="status"></div>
 
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-<script src="js/app.js?v=1"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script src="core.js"></script>
+<script src="backend.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
