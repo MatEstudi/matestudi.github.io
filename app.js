@@ -49,19 +49,23 @@ function statsView(){
   const w0=dk(addD(td,-6)),sx=Object.fromEntries(IDS.map(i=>[i,{d:0,b:0,w:0}]));
   Object.entries(S.hist).forEach(([k,v])=>IDS.forEach(i=>{const t=v[i]||0;if(t>0){const x=sx[i];x.d++;if(t>x.b)x.b=t;if(k>=w0)x.w+=t}}));
   const sxt=i=>{const x=sx[i];return `<small class="sx">${x.d?`${x.d} ${x.d===1?'día':'días'} · media ${hm(S.tot[i]/x.d)} por día · mejor día ${hm(x.b)} · últimos 7 días ${hm(x.w)}`:'Sin estudio todavía'}</small>`};
-  return rankCard()+`<div class="hd"><h2>Constancia</h2>${pill('range',[[0,'Últimos 7 días'],[7,'Semanal'],[30,'Mensual']],n,'data-range')}</div>
+  return rankCard()+(rkOpen?ranksList():'')+`<div class="hd"><h2>Constancia</h2>${pill('range',[[0,'Últimos 7 días'],[7,'Semanal'],[30,'Mensual']],n,'data-range')}</div>
   <div class="card"><div class="hint" style="margin:0 0 12px;text-align:left;font-weight:600">${rl}</div><div class="week" style="gap:${n>7?3:8}px">${ds.map((d,i)=>`<div class="${d.getTime()===td.getTime()?'td':''}" title="${DAYN[d.getDay()]} ${d.getDate()}: ${hm(vals[i])}"><p><i style="height:${vals[i]/mx*100}%;opacity:${d>td?.12:vals[i]>=gD?1:.55}">${IDS.map(s=>{const v=S.hist[dk(d)]?.[s]||0;return v?`<b style="flex:${v} 1 0;background:${SUBJ[s].c}"></b>`:''}).join('')}</i></p><span>${lbl(d,i)}</span></div>`).join('')}</div>
   <div class="hint">Las barras intensas alcanzaron tu meta diaria (${hit} de ${pastN} ${pastN===1?'día':'días'} hasta hoy).</div></div>
   <h2>Resumen</h2>
   <div class="kv"><div class="card st"><b>${hm(st.total)}</b><span>Tiempo total</span></div><div class="card st"><b>${act.length?hm(avg):'0 min'}</b><span>Media por día activo</span></div><div class="card st"><b>${hm(rec)}</b><span>Mejor día</span></div></div>
-  ${hoursCard()}<h2>Por asignatura</h2><div class="card dist">${statIds().map(i=>`<div><div><span>${SUBJ[i].n}</span><small>${hm(S.tot[i])} (${Math.round(S.tot[i]/tot*100)}%)</small></div><div class="bar"><i style="width:${S.tot[i]/tot*100}%;background:${SUBJ[i].c}"></i></div>${sxt(i)}</div>`).join('')}</div>
-  <h2>Todos los rangos</h2>${ranksList()}`;
+  ${hoursCard()}<h2>Por asignatura</h2><div class="card dist">${statIds().map(i=>`<div><div><span>${SUBJ[i].n}</span><small>${hm(S.tot[i])} (${Math.round(S.tot[i]/tot*100)}%)</small></div><div class="bar"><i style="width:${S.tot[i]/tot*100}%;background:${SUBJ[i].c}"></i></div>${sxt(i)}</div>`).join('')}</div>${sessCard()}`;
 }
 function hoursCard(){
   const h=Array(24).fill(0);Object.values(S.wk||{}).forEach(w=>(w.h||[]).forEach((v,i)=>h[i]+=v));
   const mx=Math.max(...h);if(!mx)return '';
   const pk=h.indexOf(mx),p2=n=>String(n%24).padStart(2,'0')+':00',tot=h.reduce((a,b)=>a+b,0);
   return `<h2>Horas del día</h2><div class="card"><div class="hrs" style="height:90px">${h.map((v,i)=>`<i class="${i===pk?'on':''}" style="height:${Math.max(3,v/mx*100)}%;opacity:${i===pk?1:(.35+.4*v/mx).toFixed(2)}" title="${p2(i)} · ${hm(v)}"></i>`).join('')}</div><div class="hrl"><span>0h</span><span>6h</span><span>12h</span><span>18h</span><span>23h</span></div><div class="hint" style="margin-top:8px;text-align:left">Tu hora más fuerte: ${p2(pk)}–${p2(pk+1)} (${Math.round(h[pk]/tot*100)}% de tu tiempo). Últimas 12 semanas.</div></div>`;
+}
+function sessCard(){
+  const L=S.sess.slice(0,10),tk=dk(),yk=dk(addD(lnow(),-1));
+  return `<h2>Sesiones recientes</h2><div class="card">${L.length?L.map(x=>{const k=dk(lnow(x.at)),dy=k===tk?'Hoy':k===yk?'Ayer':new Date(x.at).toLocaleDateString('es',{weekday:'short',day:'numeric',month:'short'});
+    return `<div class="ses"><span><b style="color:${SUBJ[x.s].c}">${esc(SUBJ[x.s].n)}</b><br><small>${dy} · ${hhmm(x.at-x.d*1000)}–${hhmm(x.at)} · ${esc(x.n||'Libre')}</small></span><b>${hm(x.d)}</b></div>`}).join(''):'<div class="empty" style="padding:10px">Aún no hay sesiones. Se guardan al terminar una de al menos 10 s.</div>'}</div>`;
 }
 const sNow=()=>Date.now()+off;
 const ago=t=>{if(!t)return 'hace tiempo';const x=Math.max(0,(sNow()-t)/1000);if(x<60)return 'hace un momento';if(x<3600)return 'hace '+Math.floor(x/60)+' min';if(x<86400)return 'hace '+Math.floor(x/3600)+' h';return 'hace '+Math.floor(x/86400)+' d'};
@@ -110,12 +114,13 @@ const RKDECO=['',
   `<div class="dc pi" aria-hidden="true"><div class="mv"><div>3.14159265358979323846264338327950288419716939937510582097494459230781640628620899862803482534211706798214808651328230664709384460955058223172535940812848111745028410270193852110555964462294895493038196</div><div>3.14159265358979323846264338327950288419716939937510582097494459230781640628620899862803482534211706798214808651328230664709384460955058223172535940812848111745028410270193852110555964462294895493038196</div></div></div>`,
   `<div class="dc gr"></div><svg class="dc" viewBox="0 0 360 240" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><path d="M-10 120H370" stroke="#fff" stroke-width="2" opacity=".4"/><path class="cv" pathLength="1" d="M-10 120C20 50 60 50 90 120S150 190 180 120 240 50 270 120 330 190 370 120" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".42"/><path class="cv2" pathLength="1" d="M-10 120C20 50 60 50 90 120S150 190 180 120 240 50 270 120 330 190 370 120" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round"/></svg>`,
   `<svg class="dc" viewBox="0 0 250 250" aria-hidden="true"><g fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round"><path d="M10 125H240M125 10V240" stroke-opacity=".5" stroke-width="1.5"/><path d="M233 119l7 6-7 6M119 17l6-7 6 7" stroke-opacity=".6" stroke-width="1.5"/><circle cx="125" cy="125" r="82" stroke-opacity=".5" stroke-width="1.5" stroke-dasharray="3 5"/></g><g fill="#fff" fill-opacity=".85" style="font:italic 600 13px var(--f1)"><text x="226" y="114">Re</text><text x="133" y="22">Im</text></g><g class="orb"><path d="M125 125H207" stroke="#fff" stroke-width="2" stroke-linecap="round"/><circle cx="207" cy="125" r="9" fill="#fff" fill-opacity=".25"/><circle cx="207" cy="125" r="5" fill="#fff"/></g></svg>`];
+let rkOpen=false;
 function rankCard(){
   const tot=stats().total,ri=rankOf(tot),r=RANKS[ri],nx=RANKS[ri+1];
   const pr=nx?Math.min(100,(tot-r.h*3600)/((nx.h-r.h)*3600)*100):100;
-  return `<div class="card rk k${ri} bg${ri}" data-s="${r.s}">${RKDECO[ri]}<small class="k">Tu rango</small><div class="sym">${r.s}</div><div class="big">${r.n}</div><div class="cap">${r.d}</div>
+  return `<div class="card rk k${ri} bg${ri}" data-s="${r.s}" data-rk="1">${RKDECO[ri]}<small class="k">Tu rango</small><div class="sym">${r.s}</div><div class="big">${r.n}</div><div class="cap">${r.d}</div>
     <div class="rkp"><i style="width:${pr}%"></i></div>
-    <div class="cap" style="margin-top:8px">${nx?`${hm(tot)} de ${nx.h} h · te faltan ${hm(nx.h*3600-tot)} para ${nx.s} ${nx.n}`:`${hm(tot)} estudiadas · has llegado al rango máximo`}</div></div>`;
+    <div class="cap" style="margin-top:8px">${nx?`${hm(tot)} de ${nx.h} h · te faltan ${hm(nx.h*3600-tot)} para ${nx.s} ${nx.n}`:`${hm(tot)} estudiadas · has llegado al rango máximo`}</div><div class="cap" style="margin-top:6px;opacity:.75">${rkOpen?'▴ Ocultar rangos':'▾ Ver todos los rangos'}</div></div>`;
 }
 function ranksList(){
   const ri=rankOf(stats().total);
@@ -529,6 +534,7 @@ document.addEventListener('click',e=>{
   if((x=q('[data-sub]'))){if(S.run)return toast('Pausa el cronómetro para cambiar de asignatura');S.sel=x.dataset.sub;save();return render()}
   if(q('#go'))return toggle();
   if(q('#fin'))return finish();
+  if(q('[data-rk]'))return rkOpen=!rkOpen,render();
   if((x=q('[data-mode]'))){if(S.run)return toast('Pausa el cronómetro para cambiar de modo');S.mode=x.dataset.mode;S.cur=0;S.phase=0;S.rem=POMO[0];save();return render()}
   if((x=q('[data-range]')))return S.range=+x.dataset.range,save(),render();
     if((x=q('[data-wo]')))return wrapOff+=+x.dataset.wo,render();

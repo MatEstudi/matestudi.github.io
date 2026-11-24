@@ -503,3 +503,4 @@ dialog>.acts button{padding:13px 16px;border-radius:16px}
 .week i{display:flex;flex-direction:column-reverse;overflow:hidden;background:var(--line)}
 .week i b{display:block;min-height:0}
 .dist .sx{display:block;font-size:11.5px;opacity:.8;margin-top:5px}
+[data-rk]{cursor:pointer}

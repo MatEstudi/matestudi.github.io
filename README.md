@@ -6,4 +6,3 @@ Disponible en [matestudi.github.io](https://matestudi.github.io/)
 - Añadir quests automáticas y sistema de recompensas
 - Añadir funcionalidad PWA *(Progressive Web App)*
 - Añadir mas cursos y asignaturas.
-- Hacer más realista la animación del tren y mejorar la del objetivo global.
