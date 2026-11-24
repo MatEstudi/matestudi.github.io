@@ -1,6 +1,6 @@
 :root{--fm:'Noto Sans Math','STIX Two Math','Cambria Math','Apple Symbols','Segoe UI Symbol',var(--f1),serif;
 --ease:cubic-bezier(.2,.8,.2,1);--spring:cubic-bezier(.3,1.35,.45,1);
---glass:rgba(255,255,255,.8);--glass-b:rgba(255,255,255,.78);--glass-s:0 1px 0 rgba(255,255,255,.9) inset,0 12px 34px -16px rgba(40,50,110,.28);--blur:blur(16px) saturate(160%)}
+--glass:rgba(255,255,255,.8);--glass-b:rgba(255,255,255,.78);--glass-s:0 1px 0 rgba(255,255,255,.9) inset,0 12px 34px -16px rgba(40,50,110,.28);--blur:blur(10px)}
 :root[data-t=dark]{--glass:rgba(26,30,56,.82);--glass-b:rgba(255,255,255,.1);--glass-s:0 1px 0 rgba(255,255,255,.08) inset,0 14px 38px -16px rgba(0,0,0,.7)}
 :root{--bg:#f5f6fa;--card:#fff;--ink:#161a2e;--mut:#6b7190;--line:#e6e8f0;--acc:#6366f1;--soft:color-mix(in srgb,var(--acc) 11%,transparent);--r:22px;
 --f1:'Bricolage Grotesque','Trebuchet MS',system-ui,sans-serif;--f2:'Instrument Sans',system-ui,-apple-system,'Segoe UI',sans-serif}
@@ -100,7 +100,6 @@ nav button{font-size:14px}
 .cin{display:flex;gap:8px;padding:12px;border-top:1px solid var(--line)}
 @media(max-width:480px){.goals{grid-template-columns:1fr}}
 @media(max-width:480px){.row{grid-template-columns:1fr 1fr}.row .st:first-child{grid-column:span 2}.me span{display:none}.me{padding:4px}}
-@media(prefers-reduced-motion:reduce){*{transition:none!important}}
 
 /* ---------- Rachas (fuego) ---------- */
 .fl{width:1em;height:1em;vertical-align:-.15em;flex:none;display:inline-block}
@@ -114,7 +113,6 @@ nav button{font-size:14px}
 .fire.fb{border-color:color-mix(in srgb,#f97316 calc(var(--fl,0)*100%),var(--line));box-shadow:0 0 0 calc(var(--fl,0)*1.5px) color-mix(in srgb,#f97316 calc(var(--fl,0)*100%),transparent),0 0 calc(var(--fl,0)*22px) calc(var(--fl,0)*2px) rgba(249,115,22,calc(.12 + var(--fl,0)*.4))}
 .fire.max{}
 @keyframes flick{to{box-shadow:0 0 0 1.5px #f97316,0 0 30px 5px rgba(251,146,60,.7)}}
-@media(prefers-reduced-motion:reduce){.fire.max{animation:none}}
 
 /* ---------- Tren de Anàlisi ---------- */
 .train{padding:16px 14px 14px;margin-bottom:10px;overflow-x:auto;overflow-y:hidden;border-color:#f43f5e55}
@@ -160,7 +158,6 @@ nav button{font-size:14px}
 @keyframes puff{0%{transform:translate(0,0) scale(.5);opacity:.6}100%{transform:translate(-34px,-40px) scale(1.9);opacity:0}}
 .hat{position:absolute;left:50%;top:-16px;width:30px;height:21px;transform:translateX(-50%) rotate(-6deg);z-index:3;pointer-events:none;filter:drop-shadow(0 1px 1px rgba(0,0,0,.3))}
 .seat{width:32px;height:32px;border-radius:50%;border:2px dashed rgba(255,255,255,.7);display:grid;place-items:center;font-size:14px}
-@media(prefers-reduced-motion:reduce){.train *,.trk::after{animation:none!important}}
 .wnav{display:flex;align-items:center;justify-content:space-between;margin:0 0 12px;gap:10px}.wnav b{font:700 16px var(--f1)}
 .wnav button{width:36px;height:36px;border-radius:12px;background:var(--card);border:1px solid var(--line);font-size:18px;flex:none}.wnav button:disabled{opacity:.35}
 .wr{display:grid;gap:12px}.w2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -183,7 +180,6 @@ nav button{font-size:14px}
 .lockc .cap{color:var(--mut);font-size:13px;margin-top:10px}
 @keyframes lring{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--acc) 45%,transparent)}100%{box-shadow:0 0 0 18px transparent}}
 @keyframes lglow{50%{opacity:.4}}
-@media(prefers-reduced-motion:reduce){.lkc,.lockc::after{animation:none}}
 .chk{display:flex;gap:3px;margin-top:10px}
 .chk span{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10px;color:var(--mut)}
 .chk i{width:100%;max-width:20px;aspect-ratio:1;border-radius:50%;display:grid;place-items:center;font:700 11px/1 var(--f1);font-style:normal;background:var(--line);color:transparent}
@@ -214,7 +210,6 @@ nav button{font-size:14px}
 @keyframes rkshift{to{background-position:22px 22px,300% 0}}
 @keyframes rktw{from{opacity:.35}to{opacity:.95}}
 @keyframes rkc{to{filter:hue-rotate(35deg) brightness(1.15)}}
-@media(prefers-reduced-motion:reduce){.bg4,.bg5,.rk.bg4::after,.rk.bg5::after{animation:none}}
 .rkt{display:inline-block;margin-left:4px;font:700 1.2em/1 var(--f1);vertical-align:baseline;white-space:nowrap}
 .rkt.r0{color:var(--mut)}
 .rkt.r1{background:linear-gradient(135deg,#38bdf8,#2563eb);-webkit-background-clip:text;background-clip:text;color:transparent}
@@ -223,7 +218,6 @@ nav button{font-size:14px}
 .rkt.r4{background:linear-gradient(120deg,#fde047,#f97316,#ec4899,#8b5cf6,#38bdf8,#fde047);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent}
 .rkt.r5{background:linear-gradient(120deg,#67e8f9,#818cf8,#f0abfc,#fff,#67e8f9);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent}
 @keyframes rkt3{to{background-position:300% 0}}
-@media(prefers-reduced-motion:reduce){.rkt.r4,.rkt.r5{animation:none}}
 
 .stv{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;background:radial-gradient(700px 420px at 50% -80px,color-mix(in srgb,var(--acc) 28%,transparent),transparent),var(--bg);padding:calc(env(safe-area-inset-top) + 14px) 18px calc(env(safe-area-inset-bottom) + 16px);animation:stin .3s ease}
 .stp{display:flex;gap:4px;max-width:420px;width:100%;margin:0 auto}
@@ -239,7 +233,6 @@ nav button{font-size:14px}
 .stn .ghost{flex:none;width:52px;font-size:20px}.stn .mini{flex:1;padding:14px}
 @keyframes stin{from{opacity:0}}
 @keyframes stcard{from{opacity:0;transform:translateY(24px) scale(.96)}}
-@media(prefers-reduced-motion:reduce){.stv,.stc>*{animation:none}}
 
 /* ---------- Objetivo comunitario (fuego azul) ---------- */
 .cmg{position:relative;overflow:hidden;margin-bottom:12px}
@@ -283,7 +276,6 @@ nav button{font-size:14px}
 .chk.cmchk .ok i{background:#3b82f6;color:#fff}
 .chk.cmchk .fut{opacity:.5}
 .m .bar{margin-top:6px;height:5px}
-@media(prefers-reduced-motion:reduce){.cmfill::before,.cmfill::after,.cmhead,.cmbar.vnear,.cm.lit.hot,.cm.lit.risk,.cmbig .fl{animation:none!important}}
 
 /* =========================================================
    MatEstudi - Estilo de la interfaz
@@ -324,7 +316,6 @@ nav button:not(.on):hover{color:var(--ink)}
 /* Entrada suave de cada vista (muy sutil) */
 main.in{animation:rise .3s ease-out both}
 @keyframes rise{from{opacity:0;transform:translateY(4px)}}
-@media(prefers-reduced-motion:reduce){main.in{animation:none}}
 .bar i{transition:width .6s var(--ease)}
 
 /* Estudiar: anillo y tarjetas */
@@ -334,7 +325,6 @@ main.in{animation:rise .3s ease-out both}
 .focus.run .ring::before{opacity:1;animation:breathe 3.4s ease-in-out infinite}
 .focus.run .pg{filter:drop-shadow(0 0 5px color-mix(in srgb,var(--acc) 75%,transparent))}
 @keyframes breathe{50%{transform:scale(1.07);opacity:.65}}
-@media(prefers-reduced-motion:reduce){.focus.run .ring::before{animation:none}}
 .row .st{display:flex;flex-direction:column;padding:16px 16px 14px;min-height:124px}
 .row .st .lb{display:flex;align-items:center;height:18px;color:var(--mut);font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
 .row .st .lb .fl{width:20px;height:20px}
@@ -393,13 +383,6 @@ dialog>.acts button{padding:13px 16px;border-radius:16px}
 @media(max-width:420px){.seg.pill.full button{font-size:12px;padding:8px 1px}}
 .chips .chip{font-size:14px}
 
-/* Modo ligero (dispositivos modestos): sin desenfoques ni animaciones decorativas */
-.lite body::before,.lite body::after{display:none}
-.lite *,.lite *::before,.lite *::after{animation:none!important;transition:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
-.lite dialog{background:var(--card)}
-.lite main.in,.lite .focus.run .ring::before{animation:none}
-.lite .card,.lite .m,.lite nav{box-shadow:none}
-.lite .wl,.lite .rod,.lite .pf{animation:none}
 
 /* Aviso en capa superior (popover): por encima de los diálogos */
 #toast{top:auto;right:auto;margin:0;border:0;overflow:visible;height:auto;width:auto}
@@ -440,7 +423,6 @@ dialog>.acts button{padding:13px 16px;border-radius:16px}
 .rk.k5 .dc{left:50%;top:50%;width:250px;height:250px;margin:-125px 0 0 -125px;opacity:.6}
 .rk.k5 .orb{transform-box:view-box;transform-origin:125px 125px;animation:rkorb 16s linear infinite}
 @keyframes rkorb{to{transform:rotate(360deg)}}
-@media(prefers-reduced-motion:reduce){.rk.k4 .cv,.rk.k5 .orb{animation:none}}
 
 /* Animaciones de la tarjeta grande desde 𝕀: decimales que suben, pulso que recorre la curva (ℂ ya gira) */
 .rk .dc.pi .mv{animation:rkpi 40s linear infinite}
@@ -483,7 +465,6 @@ dialog>.acts button{padding:13px 16px;border-radius:16px}
 @keyframes rcpi{to{transform:translateY(-50%)}}
 @keyframes rcwave{to{transform:translateX(-80px)}}
 @keyframes rcspin{to{transform:rotate(360deg)}}
-@media(prefers-reduced-motion:reduce){.rc3::before,.rc4::before,.rc5::after,.rcx .rkt,.rcx .rkt::before,.rcx .rkt::after{animation:none!important}}
 /* Efecto en las letras de rango de Comunidad y Chat (ℕ no lleva) */
 @keyframes rkglow{0%,100%{filter:drop-shadow(0 0 2px var(--g))}50%{filter:drop-shadow(0 0 4px var(--g)) drop-shadow(0 0 7px var(--g))}}
 @keyframes rkshine{to{background-position:0 0}}
@@ -502,5 +483,6 @@ dialog>.acts button{padding:13px 16px;border-radius:16px}
 .rcx .rkt.r4[title]::before{content:'';position:absolute;left:-2px;bottom:-4.5px;width:5px;height:5px;border-radius:50%;background:var(--dot);box-shadow:0 0 6px var(--dot);pointer-events:none;animation:rkreal 2.4s ease-in-out infinite alternate}
 .rcx .rkt.r5[title]{background:linear-gradient(120deg,#fff 15%,#67e8f9 35%,#f0abfc 55%,#fff 75%) 100% 0/300% 100%;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;filter:drop-shadow(0 0 4px #a5b4fc);animation:rkshine 3.2s linear infinite}
 .rcx .rkt.r5[title]::after{content:'\2726';position:absolute;right:-6px;top:-4px;font-size:.5em;line-height:1;color:#fff;-webkit-text-fill-color:#fff;animation:rktwk 2.2s ease-in-out infinite}
-@media(prefers-reduced-motion:reduce){.rc3::before,.rc4::before,.rc5::after,.rcx .rkt,.rcx .rkt::before,.rcx .rkt::after{animation:none!important}}
 .rc>.bgf{position:absolute}
+
+.train{contain:layout paint}.wl,.rod,.pf{backface-visibility:hidden}
