@@ -15,8 +15,6 @@ async function initFb(){
     if(!session){const r=await sb.auth.signInAnonymously();if(r.error)throw r.error;session=r.data.session}
     fb.uid=session.user.id;fb.token=session.access_token;fb.acct=!session.user.is_anonymous;fb.ok=true;
     if(fb.acct){await syncProgress(true);render();if(S.nick)await checkNick()}
-    let mg=0;try{mg=localStorage.getItem('mig123')}catch(e){}
-    if(!fb.acct)welcomeDlg();else if(mg)newPwDlg();
     syncListeners();
   }catch(e){fb.ok=false;console.warn('Modo local:',e)}
 }
@@ -230,39 +228,6 @@ function authDlg(mode,keep){
   $('#ab').onclick=()=>settings();
   $('#aok').onclick=()=>reg?doRegister():doLogin();
 }
-/* Migración Firebase→Supabase: bienvenida para quien no ha iniciado sesión + cambio de la contraseña temporal "123". */
-function welcomeDlg(){
-  const d=$('#dlg');d.onclick=null;
-  d.innerHTML=`<h2 style="margin-top:0">¡Hemos cambiado de base de datos!</h2>
-  <p>MatEstudi se ha mudado a un servidor nuevo. Tu progreso, racha y estadísticas <b>se han conservado</b>.</p>
-  <p>Por seguridad no hemos copiado tu contraseña: <b>vuelve a escribirla para entrar</b>. Usa tu nombre de siempre y la contraseña temporal <b>123</b>; después te pediremos que elijas una nueva.</p>
-  <div class="acts"><button class="mini" id="wgo">Entrar</button><button class="ghost" id="wx">Ahora no</button></div>`;
-  d.open||d.showModal();
-  $('#wgo').onclick=()=>authDlg('log');
-  $('#wx').onclick=()=>d.close();
-}
-function newPwDlg(){
-  const d=$('#dlg');d.onclick=null;
-  d.innerHTML=`<h2 style="margin-top:0">Elige tu nueva contraseña</h2>
-  <p>Has entrado con la contraseña temporal. Escribe una nueva para tu cuenta.</p>
-  <label for="p1">Nueva contraseña</label><input type="password" id="p1" autocomplete="new-password" placeholder="Mínimo 6 caracteres">
-  <label for="p2">Repite la nueva contraseña</label><input type="password" id="p2" autocomplete="new-password">
-  <small id="aerr" style="display:block;color:#ef4444;margin-top:8px;min-height:1.4em"></small>
-  <div class="acts"><button class="mini" id="aok">Guardar</button><button class="ghost" id="ab">Más tarde</button></div>`;
-  d.open||d.showModal();
-  d.onkeydown=e=>{if(e.key==='Enter'&&e.target.tagName==='INPUT'){e.preventDefault();$('#aok').click()}};
-  $('#ab').onclick=()=>d.close();
-  $('#aok').onclick=async()=>{
-    const b=$('#aok'),er=$('#aerr'),p1=$('#p1').value,p2=$('#p2').value;er.textContent='';
-    if(p1.length<6)return er.textContent='La contraseña debe tener al menos 6 caracteres.';
-    if(p1==='123')return er.textContent='Elige una contraseña distinta de la temporal.';
-    if(p1!==p2)return er.textContent='Las contraseñas no coinciden.';
-    b.disabled=true;
-    try{const{error}=await sb.auth.updateUser({password:p1});if(error)throw error;
-      try{localStorage.removeItem('mig123')}catch(e){}d.close();toast('Contraseña guardada')}
-    catch(e){er.textContent=authMsg(e,'pw');b.disabled=false}
-  };
-}
 async function doRegister(){
   const b=$('#aok'),er=$('#aerr'),raw=$('#an').value.trim().replace(/\s+/g,' '),p=$('#ap').value,p2=$('#ap2').value;er.textContent='';
   const m=nickErr(raw);if(m)return er.textContent=m;
@@ -297,7 +262,7 @@ async function doLogin(){
   if(!raw||!p)return er.textContent='Escribe tu nombre y tu contraseña.';
   if(nickErr(raw))return er.textContent='Nombre o contraseña incorrectos.';
   if(!fb.ok)return er.textContent='Sin conexión con el servidor. Inténtalo de nuevo más tarde.';
-  if(!fb.acct&&p!=='123'&&stats().total>0&&!confirm('Este dispositivo tiene progreso que no está en ninguna cuenta. Si entras, se sustituirá por el progreso de la cuenta. ¿Continuar?'))return;
+  if(!fb.acct&&stats().total>0&&!confirm('Este dispositivo tiene progreso que no está en ninguna cuenta. Si entras, se sustituirá por el progreso de la cuenta. ¿Continuar?'))return;
   b.disabled=true;
   try{
     const{data,error}=await sb.auth.signInWithPassword({email:loginEmail(raw),password:p});
@@ -307,7 +272,6 @@ async function doLogin(){
     const ns=clean(pr&&pr.data);ns.rev=Math.max(0,Math.floor(Number(pr&&pr.rev))||0);
     if(!ns.nick){const{data:pf}=await sb.from('profiles').select('nickname').eq('id',uid).maybeSingle();ns.nick=String((pf&&pf.nickname)||'').slice(0,20)}
     if(!ns.nick)ns.nick=raw;
-    if(p==='123')try{localStorage.setItem('mig123','1')}catch(e){}
     stop();clearTimeout(saveT);freeze=true;
     localStorage.setItem(KEY,JSON.stringify({...ns,run:null}));localStorage.removeItem(OLD);
     toast('Progreso restaurado');setTimeout(()=>location.reload(),400);
