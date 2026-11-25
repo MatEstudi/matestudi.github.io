@@ -1,4 +1,4 @@
-const CACHE_NAME = 'matestudi-v1';
+const CACHE_NAME = 'matestudi-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -7,6 +7,7 @@ const STATIC_ASSETS = [
   '/core.js',
   '/backend.js',
   '/quests.js',
+  '/quiz.js',
   '/config.js',
   '/manifest.json',
   '/icon-48.png',

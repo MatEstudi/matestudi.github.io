@@ -163,6 +163,7 @@ function mergeProg(a,b){
   new Set([...Object.keys(wa),...Object.keys(wb)]).forEach(k=>{const x=wa[k],y=wb[k];r.wk[k]=(!y||(x&&x.f+x.p>=y.f+y.p))?x:y});
   Object.keys(r.wk).sort().slice(0,-12).forEach(k=>delete r.wk[k]);
   r.ws={...(a.ws||{}),...(b.ws||{})};Object.keys(r.ws).sort().slice(0,-12).forEach(k=>delete r.ws[k]);
+  r.dq=qzMerge(a.dq,b.dq);
   r.q={done:{},bg:{}};
   [a.q,b.q].forEach(o=>['done','bg'].forEach(k=>{const s=(o&&o[k])||{};Object.keys(s).forEach(id=>{const e=r.q[k];if(!e[id]||s[id]<e[id])e[id]=s[id]})}));
   [a.md||{},b.md||{}].forEach(s=>Object.keys(s).forEach(m=>Object.keys(s[m]).forEach(i=>{const e=r.md[m]||(r.md[m]={});if(!e[i]||s[m][i]>e[i])e[i]=s[m][i]})));
@@ -172,7 +173,7 @@ function mergeProg(a,b){
 }
 /* Progreso en la nube: como mucho una escritura cada 5 min mientras estudias, y al instante al pausar, terminar o cambiar ajustes. */
 let pgQ=Promise.resolve(),lastPg='',lastPgAt=0;
-const progObj=()=>({tot:S.tot,hist:S.hist,sess:S.sess,wk:S.wk,ws:S.ws,goalD:S.goalD,goalW:S.goalW,nick:S.nick,color:S.color,subs:S.subs,crs:S.crs,md:S.md,pomo:S.pomo,pw:S.pw,pb:S.pb,q:S.q});
+const progObj=()=>({tot:S.tot,hist:S.hist,sess:S.sess,wk:S.wk,ws:S.ws,goalD:S.goalD,goalW:S.goalW,nick:S.nick,color:S.color,subs:S.subs,crs:S.crs,md:S.md,pomo:S.pomo,pw:S.pw,pb:S.pb,dq:S.dq,q:S.q});
 const syncProgress=(force,keepalive)=>{
   if(keepalive){
     if(!fb.ok||!fb.acct||!S.nick)return;
@@ -195,8 +196,8 @@ async function pushProg(force){
     if(row&&row.data){
       const c=clean(row.data),cr=Math.max(0,Math.floor(Number(row.rev))||0);
       if(cr>(S.rev||0)){ /* ajuste manual desde Supabase (rev + 1): la nube manda, se sustituye lo local */
-        S.tot=c.tot;S.hist=c.hist;S.sess=c.sess;S.wk=c.wk;S.ws={...S.ws,...c.ws};S.md=c.md;S.q=c.q;S.rev=cr;stop();render()}
-      else{const m=mergeProg(S,c);S.tot=m.tot;S.hist=m.hist;S.sess=m.sess;S.wk=m.wk;S.ws=m.ws;S.md=m.md;S.q=m.q;
+        S.tot=c.tot;S.hist=c.hist;S.sess=c.sess;S.wk=c.wk;S.ws={...S.ws,...c.ws};S.md=c.md;S.q=c.q;S.dq=c.dq;S.rev=cr;stop();render()}
+      else{const m=mergeProg(S,c);S.tot=m.tot;S.hist=m.hist;S.sess=m.sess;S.wk=m.wk;S.ws=m.ws;S.md=m.md;S.q=m.q;S.dq=m.dq;
         if(!S.nick){S.nick=c.nick;S.color=c.color;S.subs=c.subs;S.crs=c.crs;S.goalD=c.goalD;S.goalW=c.goalW}}
     }
     if(!S.nick)return true;

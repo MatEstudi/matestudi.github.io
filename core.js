@@ -11,7 +11,7 @@ const NOWRAP='otros'; // no cuenta para «más/menos estudiada» ni «asignatura
 const IDS=Object.keys(SUBJ),COLORS=['#6366f1','#10b981','#f43f5e','#f59e0b','#8b5cf6','#0ea5e9','#ec4899','#14b8a6'];
 const SYM=['∀','∃','∈','⊂','∪','∩','ℝ','ℕ','ℤ','∑','∫','∞','⇒','⇔','≠','≤','≥','λ','ϵ','δ'];
 const blank=()=>({rev:0,theme:'light',view:'study',sel:'fonaments',mode:'free',pomo:false,pw:50,pb:10,nt:false,rank:'daily',gv:'friends',range:0,nick:'',color:COLORS[0],goalD:3,goalW:15,qsub:'objetivo',
-  tot:Object.fromEntries(Object.keys(SUBJ).map(i=>[i,0])),subs:[...DEFAULT_SUBS],crs:['primero'],cg:'',hist:{},sess:[],wk:{},ws:{},md:{},q:{done:{},bg:{}},
+  tot:Object.fromEntries(Object.keys(SUBJ).map(i=>[i,0])),subs:[...DEFAULT_SUBS],crs:['primero'],cg:'',hist:{},sess:[],wk:{},ws:{},md:{},q:{done:{},bg:{}},dq:{},
   run:null,cur:0,curAt:0,phase:0,rem:POMO[0]});
 let S=blank(),last=0,loop=null,tick5=0,saveT=0;
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -83,6 +83,8 @@ function clean(p){
     Object.keys(qs.done||{}).filter(k=>typeof k==='string'&&k.length<=80&&/^[dwb]:/.test(k)).slice(-2000).forEach(k=>{const v=String(qs.done[k]||'');if(/^\d{4}-\d{2}-\d{2}$/.test(v))qd[k]=v});
     Object.keys(qs.bg||{}).filter(k=>/^[a-z0-9_-]{1,30}$/.test(k)).slice(-100).forEach(k=>{const v=String(qs.bg[k]||'');if(/^\d{4}-\d{2}-\d{2}$/.test(v))qb[k]=v});
     b.q={done:qd,bg:qb}}
+  /* Quiz diario: dq = {'AAAA-MM-DD':'rej'|'win'|'lose'} (últimos 400 días) */
+  if(o.dq&&typeof o.dq==='object')Object.keys(o.dq).filter(k=>/^\d{4}-\d{2}-\d{2}$/.test(k)&&['rej','win','lose'].includes(o.dq[k])).sort().slice(-400).forEach(k=>{b.dq[k]=o.dq[k]});
   return b;
 }
 const applyPomo=()=>{POMO[0]=S.pw*60;POMO[1]=S.pb*60};
@@ -125,11 +127,13 @@ function toggle(){
   else{load2();S.run=S.sel;start()}
   render();sync(true);save(true);
 }
+/* Fusión del Quiz Diario: una respuesta (win/lose) gana a un rechazo; si hay dos respuestas distintas, se queda la de a. */
+const qzMerge=(a,b)=>{const r={};[a,b].forEach(o=>Object.keys(o||{}).forEach(k=>{const v=o[k],c=r[k];if(!c||(c==='rej'&&v!=='rej'))r[k]=v}));return r};
 function load2(){try{const r=JSON.parse(localStorage.getItem(KEY));if(r){const o=clean(r);S.tot=o.tot;S.hist=o.hist;S.sess=o.sess;S.wk=o.wk;S.ws={...S.ws,...o.ws};
   const d={...(S.q?.done||{})},b={...(S.q?.bg||{})};
   Object.keys(o.q?.done||{}).forEach(k=>{if(!d[k]||o.q.done[k]<d[k])d[k]=o.q.done[k]});
   Object.keys(o.q?.bg||{}).forEach(k=>{if(!b[k]||o.q.bg[k]<b[k])b[k]=o.q.bg[k]});
-  S.q={done:d,bg:b}}}catch(e){}}
+  S.q={done:d,bg:b};S.dq=qzMerge(S.dq,o.dq)}}catch(e){}}
 function endSession(note){if(S.cur>=10){const at=S.curAt||Date.now();S.sess.unshift({s:S.run||S.sel,d:S.cur,at,n:note});S.sess=S.sess.slice(0,50);const w=wkRec(dk(wkStart(lnow(at))),true);if(!w.l||S.cur>w.l.d)w.l={d:S.cur,s:S.run||S.sel}}S.cur=0;S.curAt=0}
 function finish(){const had=S.cur;stop();endSession(S.mode==='pomo'?'Pomodoro':'Libre');if(had>=10)toast('Sesión guardada: '+hm(had));S.phase=0;S.rem=POMO[0];render();sync(true);save(true)}
 function bell(){try{const a=new(window.AudioContext||webkitAudioContext)(),o=a.createOscillator(),g=a.createGain();o.frequency.value=880;o.connect(g);g.connect(a.destination);g.gain.setValueAtTime(.2,a.currentTime);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+1.4);o.start();o.stop(a.currentTime+1.5)}catch(e){}}
@@ -139,17 +143,19 @@ function stats(){
   const k=dk();
   return{total:IDS.reduce((a,i)=>a+S.tot[i],0),today:day(k),todayKey:k,week:wkSecs(IDS),weekKey:dk(weekFri())};
 }
-/* Racha: un día suma si se estudia al menos 1 hora (QUAL). Si hoy aún no llegas a 1 h, la racha no se pierde: cuenta hasta ayer. */
-const QUAL=3600,dias=n=>n+(n===1?' día':' días');
+/* Racha: un día suma si se estudia al menos 1 hora (QUAL, ajustada por el Quiz Diario con qual(k)). Si hoy aún no llegas a 1 h, la racha no se pierde: cuenta hasta ayer. */
+const QUAL=3600,QZ_MIN=300,dias=n=>n+(n===1?' día':' días');
+/* Segundos necesarios para que el día k sume a la racha: 1 h, 5 min menos si hoy acertaste el Quiz Diario, 5 min más si fallaste. */
+const qual=k=>{const r=S.dq&&S.dq[k];return QUAL+(r==='win'?-QZ_MIN:r==='lose'?QZ_MIN:0)};
 const dayF=g=>g?k=>dayG(g,k):day;
 function streakCur(g){
-  const f=dayF(g);let n=0;const d=lnow();if(f(dk(d))<QUAL)d.setDate(d.getDate()-1);
-  const end=dk(d);while(f(dk(d))>=QUAL){n++;d.setDate(d.getDate()-1)}
+  const f=dayF(g);let n=0;const d=lnow();if(f(dk(d))<qual(dk(d)))d.setDate(d.getDate()-1);
+  const end=dk(d);while(f(dk(d))>=qual(dk(d))){n++;d.setDate(d.getDate()-1)}
   return{n,end:n?end:''};
 }
 function streakBest(cur,g){
   const f=dayF(g);let best=0,run=0,prev=null;
-  Object.keys(S.hist).filter(k=>f(k)>=QUAL).sort().forEach(k=>{
+  Object.keys(S.hist).filter(k=>f(k)>=qual(k)).sort().forEach(k=>{
     const[y,m,d]=k.split('-').map(Number),t=Date.UTC(y,m-1,d);
     run=prev!==null&&t-prev===864e5?run+1:1;prev=t;if(run>best)best=run});
   return Math.max(best,cur);

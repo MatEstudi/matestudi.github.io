@@ -15,8 +15,8 @@ function paint(){
   const sk=streakCur();
   $('#v-streak').textContent=dias(sk.n);$('#stk-ico').classList.toggle('off',!sk.n);
   $('#stk-card').style.cssText=fireVar(sk.n);
-  $('#stk-note').textContent=st.today>=QUAL?'':`Faltan ${Math.ceil((QUAL-st.today)/60)} min`;
-  const ck=$('#stk-chk');if(ck){const mo=monday(),tk=dk(),hh=[...Array(7)].map((_,i)=>{const d=new Date(mo);d.setDate(mo.getDate()+i);const ok=day(dk(d))>=QUAL;return `<span class="${ok?'ok':''}${dk(d)===tk?' hoy':''}" title="${ok?'Racha cumplida':'Sin racha'}"><i>${ok?'✓':''}</i>${'DLMXJVS'[d.getDay()]}</span>`}).join('');if(ck._h!==hh){ck._h=hh;ck.innerHTML=hh}}
+  {const ql=qual(st.todayKey);$('#stk-note').textContent=st.today>=ql?'':`Faltan ${Math.ceil((ql-st.today)/60)} min`}
+  const ck=$('#stk-chk');if(ck){const mo=monday(),tk=dk(),hh=[...Array(7)].map((_,i)=>{const d=new Date(mo);d.setDate(mo.getDate()+i);const ok=day(dk(d))>=qual(dk(d));return `<span class="${ok?'ok':''}${dk(d)===tk?' hoy':''}" title="${ok?'Racha cumplida':'Sin racha'}"><i>${ok?'✓':''}</i>${'DLMXJVS'[d.getDay()]}</span>`}).join('');if(ck._h!==hh){ck._h=hh;ck.innerHTML=hh}}
   if(((S.view==='group'&&S.gv!=='chat')||S.view==='stats')&&tick5%10===0&&document.activeElement.tagName!=='INPUT')render();
 }
 const ringFrac=()=>S.mode==='free'?(S.cur%3600)/3600:1-S.rem/POMO[S.phase];
@@ -34,7 +34,7 @@ function study(){
   ${S.pomo?pill('mode',[['free','Libre'],['pomo',`Pomodoro ${S.pw}/${S.pb}`]],S.mode,'data-mode'):''}</div>
   <div class="row"><div class="card st"><span class="lb">Hoy</span><b id="v-today"></b><div class="bar"><i id="gbar"></i></div><small id="gtxt"></small></div>
   <div class="card st"><span class="lb">Esta semana</span><b id="v-week"></b><div class="bar"><i id="wbar"></i></div><small id="wtxt"></small></div>
-  <div class="card st fire" id="stk-card"><svg class="bgf" viewBox="0 0 24 24" aria-hidden="true"><use href="#flame"/></svg><span class="lb"><svg class="fl" id="stk-ico" viewBox="0 0 24 24" aria-hidden="true"><use href="#flame"/></svg></span><b id="v-streak"></b><small id="stk-note"></small><div class="chk" id="stk-chk"></div></div></div>`;
+  <div class="card st fire" id="stk-card"><svg class="bgf" viewBox="0 0 24 24" aria-hidden="true"><use href="#flame"/></svg><span class="lb"><svg class="fl" id="stk-ico" viewBox="0 0 24 24" aria-hidden="true"><use href="#flame"/></svg></span><b id="v-streak"></b><small id="stk-note"></small><div class="chk" id="stk-chk"></div></div></div>${quizCard()}`;
 }
 function statsView(){
   const st=stats(),n=S.range,gD=S.goalD*3600;
