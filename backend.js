@@ -1,10 +1,8 @@
 /* ---------- Supabase (comunidad) ----------
    - Presencia (quién está online / estudiando): Supabase Realtime Presence, abierto mientras la app está visible (o el cronómetro corre).
-   - Perfiles, progreso: tablas Postgres (profiles, progress) con RLS.
-   - Chat: tabla chat_messages + Realtime (postgres_changes), solo con la pestaña Chat abierta. */
-let sb=null,fb={ok:false,uid:'',users:{},pres:{},presReady:false,acct:false,token:'',msgs:[]},
-  lastProfAt=0,lastProfSig='',lastPrSig='',off=0,ringPrev=0,presCh=null,hideT=null,usersAt=0,usersBusy=false,noGs=false,noMs=false,msAt=0;
-const typing=()=>['INPUT','TEXTAREA'].includes(document.activeElement&&document.activeElement.tagName);
+   - Perfiles, progreso: tablas Postgres (profiles, progress) con RLS. */
+let sb=null,fb={ok:false,uid:'',users:{},pres:{},presReady:false,acct:false,token:''},
+  lastProfAt=0,lastProfSig='',lastPrSig='',off=0,ringPrev=0,presCh=null,hideT=null,usersAt=0,usersBusy=false,noGs=false;
 async function initFb(){
   try{
     if(!window.supabase||!window.SUPABASE_URL||!window.SUPABASE_ANON_KEY)throw new Error('Falta la librería de Supabase o config.js');
@@ -41,6 +39,12 @@ function releaseNick(old,keep){
   if(!/^[a-z0-9]{3,20}$/.test(k)||(keep&&nickKey(keep)===k))return;
   sb.from('nicks').delete().eq('key',k).eq('uid',fb.uid).then(()=>{});
 }
+async function updateProfileNick(nick){
+  if(!fb.ok||!fb.uid)return false;
+  const{error}=await sb.from('profiles').update({nickname:nick}).eq('id',fb.uid);
+  if(error)throw error;
+  return true;
+}
 async function checkNick(){
   let bad=nickErr(S.nick);
   if(!bad&&await claimNick(S.nick)==='taken')bad='uso';
@@ -59,11 +63,11 @@ async function fetchUsers(){
     const n={};
     (data||[]).forEach(r=>{
       n[r.id]={nickname:r.nickname,avatarColor:r.avatar_color,totalSeconds:r.total_seconds,todaySeconds:r.today_seconds,todayDateKey:r.today_date_key,
-        weeklySeconds:r.weekly_seconds,weekStartKey:r.week_start_key,streak:r.streak,streakEnd:r.streak_end,bestStreak:r.best_streak,ww:r.ww,gs:r.gs,ms:r.ms,
+        weeklySeconds:r.weekly_seconds,weekStartKey:r.week_start_key,streak:r.streak,streakEnd:r.streak_end,bestStreak:r.best_streak,ww:r.ww,gs:r.gs,
         online:false,active:null,since:0,lastSeen:Date.parse(r.last_seen)||0,updatedAt:Date.parse(r.updated_at)||0};
     });
     fb.users=n;
-    if(S.view==='group'&&S.gv!=='chat'&&!typing())render();
+    if(S.view==='group')render();
   }catch(e){console.warn('Perfiles:',e.message||e)}
   finally{usersBusy=false}
 }
@@ -78,7 +82,7 @@ function openPres(){
     Object.entries(st).forEach(([uid,metas])=>{const p=metas&&metas[metas.length-1];
       if(p&&p.nickname)m[uid]={online:true,nickname:p.nickname,avatarColor:p.avatarColor,active:p.active||null,since:+p.since||0,lastSeen:Date.now()}});
     fb.pres=m;fb.presReady=true;
-    if(S.view==='group'&&S.gv!=='chat'&&!typing())render();
+    if(S.view==='group')render();
   }).subscribe(s=>{if(s==='SUBSCRIBED'&&presCh===ch){lastPrSig='';trackPres()}});
 }
 function closePres(){
@@ -94,13 +98,10 @@ function trackPres(){
 /* Qué escuchar según la pantalla (se llama en cada render) */
 function syncListeners(){
   if(!fb.ok)return;
-  const vis=!document.hidden,g=S.view==='group'&&vis,qv=S.view==='quests'&&vis;
+  const vis=!document.hidden,g=S.view==='group'&&vis;
   if(vis||S.run){clearTimeout(hideT);hideT=null;openPres()}
   else if(!hideT)hideT=setTimeout(()=>{hideT=null;if(document.hidden&&!S.run){closePres();sync(true,true)}},8000);
-  // Fetch users for both group view (except chat) and quests view (for Objetivo subtab)
-  if((g&&S.gv!=='chat'||qv)&&Date.now()-usersAt>40000){usersAt=Date.now();fetchUsers()}
-  if(((g&&S.gv!=='chat')||qv)&&Date.now()-msAt>40000){msAt=Date.now();fetchMissions()}
-  listenChat((g&&S.gv==='chat')||(S.nt&&fb.acct));
+  if(g&&Date.now()-usersAt>40000){usersAt=Date.now();fetchUsers()}
 }
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&fb.ok&&fb.acct&&S.nick)sync(true)});
 /* Para cerrar la pestaña: fetch con keepalive sigue vivo aunque la página se descargue */
@@ -116,12 +117,12 @@ function sync(force,final){
   trackPres();
   const now=Date.now(),iso=new Date(now).toISOString(),st=stats(),a=S.run?SUBJ[S.run].n:null,sk=streakCur(),bs=streakBest(sk.n);
   let ww=[];try{ww=wkSnaps()}catch(e){}
-  const gs=gsOut(),ms=msOut();
+  const gs=gsOut();
   const online=!final&&!(document.hidden&&!S.run);
   const row=()=>({nickname:S.nick,avatar_color:S.color,total_seconds:st.total,today_seconds:num(st.today,86400),today_date_key:st.todayKey,
-    weekly_seconds:num(st.week,604800),week_start_key:st.weekKey,streak:num(sk.n,36500),streak_end:sk.end,best_streak:num(bs,36500),ww,...(noGs?{}:{gs}),...(noMs||!ms?{}:{ms}),
+    weekly_seconds:num(st.week,604800),week_start_key:st.weekKey,streak:num(sk.n,36500),streak_end:sk.end,best_streak:num(bs,36500),ww,crs:S.crs,...(noGs?{}:{gs}),
     online,active:online?a:null,since:online&&S.run?new Date(now-S.cur*1000).toISOString():null,last_seen:iso,updated_at:iso});
-  const sig=JSON.stringify([S.nick,S.color,online,a,Math.floor(st.total/60),Math.floor(st.today/60),Math.floor(st.week/60),sk.n,sk.end,bs,ww.map(w=>[w.k,Math.floor(w.t/60)]),Object.entries(gs).map(([g,x])=>[g,Math.floor(x.t/60),Math.floor(x.d/60),Math.floor(x.w/60),x.s,x.dl[0]]),ms&&[ms.n,ms.m]]);
+  const sig=JSON.stringify([S.nick,S.color,online,a,Math.floor(st.total/60),Math.floor(st.today/60),Math.floor(st.week/60),sk.n,sk.end,bs,ww.map(w=>[w.k,Math.floor(w.t/60)]),Object.entries(gs).map(([g,x])=>[g,Math.floor(x.t/60),Math.floor(x.d/60),Math.floor(x.w/60),x.s,x.dl[0]])]);
   if(final){
     syncProgress(false,true);
     if(sig!==lastProfSig){lastProfSig=sig;lastProfAt=now;keepalivePatch('profiles','id',fb.uid,row())}
@@ -134,7 +135,7 @@ function sync(force,final){
   lastProfAt=now;lastProfSig=sig;
   /* Si aún no has ejecutado supabase/schema_v4.sql (columna dl), reintenta sin ella para no romper el perfil. */
   const put=()=>sb.from('profiles').upsert({id:fb.uid,...row()},{onConflict:'id'}).then(({error})=>{
-    if(error){if(!noMs&&/\bms\b/.test(error.message||'')){noMs=true;return put()}if(!noGs&&/\bgs\b/.test(error.message||'')){noGs=true;return put()}console.warn('Perfil:',error.message)}});
+    if(error){if(!noGs&&/\bgs\b/.test(error.message||'')){noGs=true;return put()}console.warn('Perfil:',error.message)}});
   put();
 }
 /* ---------- Cuentas: nombre de usuario (único) + contraseña ----------
@@ -155,7 +156,7 @@ function authMsg(e,ctx){
 /* Fusión segura del progreso: el tiempo solo crece, así que se queda el máximo de cada campo.
    Evita que un dispositivo con datos viejos pise lo que otro ya guardó. */
 function mergeProg(a,b){
-  const r={tot:{},hist:{},wk:{},ws:{},md:{}};
+  const r={tot:{},hist:{},wk:{},ws:{}};
   IDS.forEach(i=>r.tot[i]=Math.max(a.tot[i]||0,b.tot[i]||0));
   new Set([...Object.keys(a.hist),...Object.keys(b.hist)]).forEach(k=>{
     const x=a.hist[k]||{},y=b.hist[k]||{},e={t:0};IDS.forEach(i=>{e[i]=Math.max(x[i]||0,y[i]||0);e.t+=e[i];const q=Math.max((x.q&&x.q[i])||0,(y.q&&y.q[i])||0);if(q)(e.q||(e.q={}))[i]=q});if(e.t)r.hist[k]=e});
@@ -164,16 +165,13 @@ function mergeProg(a,b){
   Object.keys(r.wk).sort().slice(0,-12).forEach(k=>delete r.wk[k]);
   r.ws={...(a.ws||{}),...(b.ws||{})};Object.keys(r.ws).sort().slice(0,-12).forEach(k=>delete r.ws[k]);
   r.dq=qzMerge(a.dq,b.dq);
-  r.q={done:{},bg:{}};
-  [a.q,b.q].forEach(o=>['done','bg'].forEach(k=>{const s=(o&&o[k])||{};Object.keys(s).forEach(id=>{const e=r.q[k];if(!e[id]||s[id]<e[id])e[id]=s[id]})}));
-  [a.md||{},b.md||{}].forEach(s=>Object.keys(s).forEach(m=>Object.keys(s[m]).forEach(i=>{const e=r.md[m]||(r.md[m]={});if(!e[i]||s[m][i]>e[i])e[i]=s[m][i]})));
   const seen=new Set();
   r.sess=[...a.sess,...b.sess].filter(x=>{const q=x.at+'|'+x.s+'|'+x.d;if(seen.has(q))return false;seen.add(q);return true}).sort((p,q)=>q.at-p.at).slice(0,50);
   return r;
 }
 /* Progreso en la nube: como mucho una escritura cada 5 min mientras estudias, y al instante al pausar, terminar o cambiar ajustes. */
 let pgQ=Promise.resolve(),lastPg='',lastPgAt=0;
-const progObj=()=>({tot:S.tot,hist:S.hist,sess:S.sess,wk:S.wk,ws:S.ws,goalD:S.goalD,goalW:S.goalW,nick:S.nick,color:S.color,subs:S.subs,crs:S.crs,md:S.md,pomo:S.pomo,pw:S.pw,pb:S.pb,dq:S.dq,q:S.q});
+const progObj=()=>({tot:S.tot,hist:S.hist,sess:S.sess,wk:S.wk,ws:S.ws,goalD:S.goalD,goalW:S.goalW,nick:S.nick,color:S.color,subs:S.subs,crs:S.crs,pomo:S.pomo,pw:S.pw,pb:S.pb,dq:S.dq});
 const syncProgress=(force,keepalive)=>{
   if(keepalive){
     if(!fb.ok||!fb.acct||!S.nick)return;
@@ -196,8 +194,8 @@ async function pushProg(force){
     if(row&&row.data){
       const c=clean(row.data),cr=Math.max(0,Math.floor(Number(row.rev))||0);
       if(cr>(S.rev||0)){ /* ajuste manual desde Supabase (rev + 1): la nube manda, se sustituye lo local */
-        S.tot=c.tot;S.hist=c.hist;S.sess=c.sess;S.wk=c.wk;S.ws={...S.ws,...c.ws};S.md=c.md;S.q=c.q;S.dq=c.dq;S.rev=cr;stop();render()}
-      else{const m=mergeProg(S,c);S.tot=m.tot;S.hist=m.hist;S.sess=m.sess;S.wk=m.wk;S.ws=m.ws;S.md=m.md;S.q=m.q;S.dq=m.dq;
+        S.tot=c.tot;S.hist=c.hist;S.sess=c.sess;S.wk=c.wk;S.ws={...S.ws,...c.ws};S.dq=c.dq;S.rev=cr;stop();render()}
+      else{const m=mergeProg(S,c);S.tot=m.tot;S.hist=m.hist;S.sess=m.sess;S.wk=m.wk;S.ws=m.ws;S.dq=m.dq;
         if(!S.nick){S.nick=c.nick;S.color=c.color;S.subs=c.subs;S.crs=c.crs;S.goalD=c.goalD;S.goalW=c.goalW}}
     }
     if(!S.nick)return true;
@@ -255,9 +253,30 @@ async function doRegister(){
     }
     S.nick=raw;lastPrSig='';lastProfSig='';lastProfAt=0;lastPg='';lastPgAt=0;save(true);
     closePres();
-    await syncProgress(true);sync(true);$('#dlg').close();render();toast('Cuenta creada. Tu progreso ya se guarda en la nube.');
+    await syncProgress(true);sync(true);
+    $('#dlg').close();
+    await pickInitialSubjects();
+    render();toast('Cuenta creada. Tu progreso ya se guarda en la nube.');
   }catch(e){er.textContent=authMsg(e)}
   b.disabled=false;
+}
+async function pickInitialSubjects(){
+  const d=$('#dlg');
+  const byCourse={};
+  IDS.filter(i=>i!=='otros').forEach(i=>{const g=SUBJ[i].g;if(!byCourse[g])byCourse[g]=[];byCourse[g].push(i)});
+  d.innerHTML=`<h2>Elige tus asignaturas</h2>
+  <div class="hint" style="text-align:left;margin-bottom:12px">Selecciona lo que vas a estudiar. Puedes cambiarlo después en Ajustes.</div>
+  ${Object.entries(byCourse).map(([g,subs])=>`<div style="margin-bottom:16px"><div class="sgh"><span>${GR[g]?.n||g}</span></div><div class="sjs">${subs.map(i=>`<label style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:99px;border:1px solid var(--line);cursor:pointer"><input type="checkbox" value="${i}" checked><b style="width:10px;height:10px;border-radius:50%;background:${SUBJ[i].c}"></b>${SUBJ[i].n}</label>`).join('')}</div></div>`).join('')}
+  <div class="acts"><button class="mini" id="sub-ok">Continuar</button></div>`;
+  d.open||d.showModal();
+  $('#sub-ok').onclick=()=>{
+    const checked=[...d.querySelectorAll('input[type=checkbox]:checked')].map(x=>x.value);
+    S.subs=checked.length?checked:DEFAULT_SUBS;
+    S.crs=Object.keys(GR).filter(g=>S.subs.some(i=>SUBJ[i].g===g));
+    if(!S.subs.includes(S.sel)&&S.sel!=='otros')S.sel=S.subs[0];
+    save(true);
+    d.close();
+  };
 }
 async function doLogin(){
   const b=$('#aok'),er=$('#aerr'),raw=$('#an').value.trim().replace(/\s+/g,' '),p=$('#ap').value;er.textContent='';
@@ -323,30 +342,18 @@ function members(){
   const tk=dk(),wk=dk(weekFri()),now=Date.now(),out=[];
   new Set([...Object.keys(fb.users),...Object.keys(fb.pres),...(S.nick&&fb.uid?[fb.uid]:[])]).forEach(id=>{
     const me=id===fb.uid,u={...fb.users[id],...fb.pres[id]};
-    if(me&&S.nick){const st=stats(),sk=streakCur();Object.assign(u,{streak:sk.n,streakEnd:sk.end,bestStreak:streakBest(sk.n),nickname:S.nick,avatarColor:S.color,totalSeconds:st.total,todaySeconds:st.today,todayDateKey:tk,weeklySeconds:st.week,weekStartKey:wk,gs:gsOut(),ms:msOut(),online:fb.ok,active:S.run?SUBJ[S.run].n:null,since:S.run?now+off-S.cur*1000:null,lastSeen:now,updatedAt:now})}
+    if(me&&S.nick){const st=stats(),sk=streakCur();Object.assign(u,{streak:sk.n,streakEnd:sk.end,bestStreak:streakBest(sk.n),nickname:S.nick,avatarColor:S.color,totalSeconds:st.total,todaySeconds:st.today,todayDateKey:tk,weeklySeconds:st.week,weekStartKey:wk,gs:gsOut(),online:fb.ok,active:S.run?SUBJ[S.run].n:null,since:S.run?now+off-S.cur*1000:null,lastSeen:now,updatedAt:now})}
     if(!u.nickname||!NICK_RE.test(String(u.nickname)))return;
     if(!u.online&&now-(u.updatedAt||0)>30*864e5)return;           // usuarios fantasma
     const extra=(!me&&u.online&&u.active)?Math.min(600,Math.max(0,(now+off-(Math.max(+u.updatedAt||0,+u.since||0)||now+off))/1000)):0; // frescura de datos ajenos
     const mk=(d,w,t,sk,se,b,dl)=>{const lv=liveStreak({streak:sk,streakEnd:se});return{daily:(u.todayDateKey===tk?num(d,86400):0)+extra,weekly:(u.weekStartKey===wk?num(w):0)+extra,total:num(t)+extra,streak:lv,best:Math.max(num(b,36500),lv),dl:parseDl(dl)}};
-    const grp={},um=u.ms&&typeof u.ms==='object'?u.ms:{},mm={n:num(um.n,9999),m:num(um.m,9999)};
-    if(u.gs&&typeof u.gs==='object')Object.keys(GR).forEach(g=>{const x=u.gs[g];if(x&&typeof x==='object')grp[g]=mk(x.d,x.w,x.t,x.s,x.e,x.b,x.dl)});
-    else grp.primero=mk(u.todaySeconds,u.weeklySeconds,u.totalSeconds,u.streak,u.streakEnd,u.bestStreak,null); // perfiles antiguos = Primero
+    const grp={};
+    const globalStreak=u.streak||0,globalStreakEnd=u.streakEnd||'',globalBest=u.bestStreak||0,globalDl=u.gs?Object.values(u.gs)[0]?.dl:null;
+    const globalD=u.todaySeconds||0,globalW=u.weeklySeconds||0,globalT=u.totalSeconds||0;
+    const userCourses=u.crs&&Array.isArray(u.crs)?u.crs:(u.gs&&typeof u.gs==='object'?Object.keys(u.gs):['primero']);
+    userCourses.forEach(g=>{grp[g]=mk(globalD,globalW,globalT,globalStreak,globalStreakEnd,globalBest,globalDl)});
     out.push({id,me,nick:String(u.nickname).slice(0,20),color:COLORS.includes(u.avatarColor)?u.avatarColor:COLORS[0],on:!!u.online,act:u.online?u.active:null,since:+u.since||0,seen:+u.lastSeen||+u.updatedAt||0,
       daily:(u.todayDateKey===tk?num(u.todaySeconds,86400):0)+extra,weekly:(u.weekStartKey===wk?num(u.weeklySeconds):0)+extra,total:num(u.totalSeconds)+extra,
-      streak:liveStreak(u),best:Math.max(num(u.bestStreak,36500),liveStreak(u)),grp,ms:mm,dl:(userGroups().length>1?Object.fromEntries(userGroups().flatMap(g=>dayLogArr(g).map(s=>{const p=s.split(':');return[p[0],num(p[1],1440)]}))):dayLogArr(userGroups()[0]||'primero'))});
+      streak:liveStreak(u),best:Math.max(num(u.bestStreak,36500),liveStreak(u)),grp,dl:dayLogArr()});
   });return out;
-}
-
-/* Misiones activas (tabla missions, solo lectura). Si la tabla no existe o está vacía, no se muestra nada. */
-async function fetchMissions(){
-  if(!fb.ok)return;
-  try{
-    const{data,error}=await sb.from('missions').select('id,subject,title,items,deadline').eq('active',true).order('sort').order('created_at');
-    if(error)throw error;
-    fb.missions=(data||[]).map(r=>({id:String(r.id).slice(0,40),s:IDS.includes(r.subject)?r.subject:'otros',title:String(r.title||'').slice(0,120),
-      dl:/^\d{4}-\d{2}-\d{2}$/.test(r.deadline||'')?r.deadline:'',
-      items:(Array.isArray(r.items)?r.items:[]).slice(0,60).map(i=>String(i).replace(/[|]/g,'').trim().slice(0,40)).filter(i=>i&&i!=='_')}));
-    if(S.view==='group'&&(S.gv==='comm'||S.gv==='wrap')&&!typing())render();
-    else if(S.view==='quests'&&!typing()){if(typeof questsCheck==='function')questsCheck(true);render()}
-  }catch(e){console.warn('Misiones:',e.message||e)}
 }

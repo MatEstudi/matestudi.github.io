@@ -100,13 +100,8 @@ function qzPick(k=dk()){
   for(let i=4;i>0;i--){const j=cgHash(k+'#'+i)%(i+1);[ix[i],ix[j]]=[ix[j],ix[i]]}
   return{s:QZ_SUBJ[it[0]],q:it[1],o:ix.map(i=>it[2+i]),c:ix.indexOf(0),e:it[7]};
 }
-/* Tarjeta de «Estudiar»: botón mientras el quiz esté disponible; tras responder, un resumen; si se rechaza, nada. */
-function quizCard(){
-  const r=qzDay();
-  if(r==='rej')return '';
-  if(r==='win'||r==='lose')return `<div class="card qzd ${r}"><span class="qi">${r==='win'?'✓':'✕'}</span><span class="qt"><b>Quiz Diario · ${r==='win'?'acertado':'fallado'}</b><small>Hoy la racha te pide ${hm(qual(dk()))}</small></span></div>`;
-  return `<button type="button" class="card qzb" data-qz="open"><span class="qi">🧠</span><span class="qt"><b>Quiz Diario</b><small>Una pregunta al día · ±5 min en tu racha</small></span><span class="qa" aria-hidden="true">›</span></button>`;
-}
+/* Tarjeta de «Estudiar»: ahora se muestra en la racha (botón 🧠). Esta función deja de usarse pero se mantiene por compatibilidad. */
+function quizCard(){return ''}
 function qzIntro(){
   const d=$('#dlg');d.onkeydown=null;
   d.innerHTML=`<h2>Quiz Diario</h2>

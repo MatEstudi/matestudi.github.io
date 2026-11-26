@@ -1,4 +1,4 @@
-const CACHE_NAME = 'matestudi-v2';
+const CACHE_NAME = 'matestudi-v3';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -6,19 +6,12 @@ const STATIC_ASSETS = [
   '/app.js',
   '/core.js',
   '/backend.js',
-  '/quests.js',
   '/quiz.js',
   '/config.js',
   '/manifest.json',
-  '/icon-48.png',
-  '/icon-72.png',
-  '/icon-96.png',
-  '/icon-144.png',
   '/icon-192.png',
   '/icon-512.png',
-  '/favicon-32.png',
-  '/favicon.ico',
-  '/hqlogo.png'
+  '/favicon.ico'
 ];
 
 self.addEventListener('install', (event) => {
