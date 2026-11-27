@@ -4,7 +4,6 @@ const GR={primero:{n:'GMIN 1er'},segundo:{n:'GMIN 2n'}};
 const SUBJ={fonaments:{n:'Fonaments',c:'#6366f1',g:'primero'},algebra:{n:'Àlgebra Lineal I',c:'#10b981',g:'primero'},analisi:{n:'Anàlisi Matemàtica I',c:'#f43f5e',g:'primero'},programacio:{n:'Programació',c:'#f97316',g:'primero'},empresa:{n:'Empresa',c:'#eab308',g:'primero'},
   calcul:{n:'Càlcul Diferencial',sh:'Càlcul Diferencial',c:'#0ea5e9',g:'segundo'},topologia:{n:'Topologia',c:'#8b5cf6',g:'segundo'},digitals:{n:'Sistemes Digitals',c:'#f59e0b',g:'segundo'},
   algorismia:{n:'Algorísmia',sh:'Algorísmia',c:'#14b8a6',g:'segundo'},discreta:{n:'Discreta',sh:'Discreta',c:'#ec4899',g:'segundo'},abstracta:{n:'Àlgebra Abstracta I',c:'#84cc16',g:'segundo'},
-  adde:{n:'AdDE',c:'#a855f7',g:'segundo'},fisica:{n:'Física',c:'#ef4444',g:'segundo'},
   otros:{n:'Otros',c:'#64748b'}};
 const DEFAULT_SUBS=['fonaments','algebra','analisi'];
 const NOWRAP='otros'; // no cuenta para «más/menos estudiada» ni «asignatura en alza/caída» del Recap

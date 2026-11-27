@@ -1,4 +1,4 @@
-const CACHE_NAME = 'matestudi-v3';
+const CACHE_NAME = 'matestudi-v3.0.1';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
